@@ -1,0 +1,692 @@
+openapi: 3.0.3
+info:
+  title: Online Library API
+  version: 1.0.0
+  description: API учебного проекта «Онлайн-библиотека книг»
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local dev
+  - url: https://api.library.example.com/api/v1
+    description: Prod
+
+tags:
+  - name: auth
+  - name: authors
+  - name: genres
+  - name: books
+  - name: reviews
+  - name: loans
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register/:
+    post:
+      tags: [auth]
+      security: []
+      summary: Регистрация пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password, password_confirm]
+              properties:
+                username: { type: string, minLength: 3, maxLength: 150 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                password_confirm: { type: string, minLength: 8 }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /auth/login/:
+    post:
+      tags: [auth]
+      security: []
+      summary: Получение JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access: { type: string }
+                  refresh: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/refresh/:
+    post:
+      tags: [auth]
+      security: []
+      summary: Обновление access-токена
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh]
+              properties:
+                refresh: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me/:
+    get:
+      tags: [auth]
+      summary: Текущий пользователь
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [auth]
+      summary: Обновить профиль
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                first_name: { type: string }
+                last_name: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /authors/:
+    get:
+      tags: [authors]
+      summary: Список авторов
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuthors'
+    post:
+      tags: [authors]
+      summary: Создать автора (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthorInput' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Author' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /authors/{id}/:
+    parameters:
+      - { $ref: '#/components/parameters/IdPath' }
+    get:
+      tags: [authors]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Author' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [authors]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthorInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Author' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [authors]
+      responses:
+        '204': { description: Удалено }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /genres/:
+    get:
+      tags: [genres]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGenres'
+    post:
+      tags: [genres]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GenreInput' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Genre' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /genres/{id}/:
+    parameters:
+      - { $ref: '#/components/parameters/IdPath' }
+    get:
+      tags: [genres]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Genre' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [genres]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GenreInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Genre' }
+    delete:
+      tags: [genres]
+      responses:
+        '204': { description: Удалено }
+
+  /books/:
+    get:
+      tags: [books]
+      summary: Список книг с фильтрами и поиском
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: author, in: query, schema: { type: string, format: uuid } }
+        - { name: genre, in: query, schema: { type: string, format: uuid } }
+        - { name: year_min, in: query, schema: { type: integer } }
+        - { name: year_max, in: query, schema: { type: integer } }
+        - name: ordering
+          in: query
+          schema:
+            type: string
+            enum: [title, -title, published_year, -published_year, avg_rating, -avg_rating]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBooks'
+    post:
+      tags: [books]
+      summary: Создать книгу (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookInput' }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /books/{id}/:
+    parameters:
+      - { $ref: '#/components/parameters/IdPath' }
+    get:
+      tags: [books]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [books]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [books]
+      responses:
+        '204': { description: Удалено }
+
+  /books/{id}/reviews/:
+    parameters:
+      - { $ref: '#/components/parameters/IdPath' }
+    get:
+      tags: [books, reviews]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviews'
+    post:
+      tags: [books, reviews]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReviewInput' }
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Review' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /reviews/:
+    get:
+      tags: [reviews]
+      parameters:
+        - { name: book, in: query, schema: { type: string, format: uuid } }
+        - { name: user, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviews'
+
+  /reviews/{id}/:
+    parameters:
+      - { $ref: '#/components/parameters/IdPath' }
+    get:
+      tags: [reviews]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Review' }
+    patch:
+      tags: [reviews]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReviewInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Review' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [reviews]
+      responses:
+        '204': { description: Удалено }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /loans/:
+    get:
+      tags: [loans]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, returned, overdue] } }
+        - { name: user, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLoans'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [loans]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [book_id, due_at]
+              properties:
+                book_id: { type: string, format: uuid }
+                due_at: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Создана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Loan' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /loans/{id}/return/:
+    parameters:
+      - { $ref: '#/components/parameters/IdPath' }
+    post:
+      tags: [loans]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Loan' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Ошибка валидации
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Требуется аутентификация
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Недостаточно прав
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Не найдено
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Конфликт состояния
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail: { type: string }
+        errors:
+          type: object
+          additionalProperties: true
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        email: { type: string, format: email }
+        first_name: { type: string }
+        last_name: { type: string }
+        role: { type: string, enum: [reader, admin] }
+
+    Author:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        first_name: { type: string }
+        last_name: { type: string }
+        full_name: { type: string }
+        bio: { type: string, nullable: true }
+        birth_date: { type: string, format: date, nullable: true }
+        photo_url: { type: string, format: uri, nullable: true }
+
+    AuthorInput:
+      type: object
+      required: [first_name, last_name]
+      properties:
+        first_name: { type: string, maxLength: 100 }
+        last_name: { type: string, maxLength: 100 }
+        bio: { type: string }
+        birth_date: { type: string, format: date }
+        photo_url: { type: string, format: uri }
+
+    Genre:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+
+    GenreInput:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { type: string, maxLength: 80 }
+        slug: { type: string, maxLength: 80 }
+        description: { type: string }
+
+    AuthorShort:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+
+    GenreShort:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    BookList:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        cover_url: { type: string, format: uri, nullable: true }
+        published_year: { type: integer, nullable: true }
+        avg_rating: { type: number, format: float, nullable: true }
+        available_copies: { type: integer }
+        authors:
+          type: array
+          items: { $ref: '#/components/schemas/AuthorShort' }
+        genres:
+          type: array
+          items: { $ref: '#/components/schemas/GenreShort' }
+
+    BookDetail:
+      allOf:
+        - $ref: '#/components/schemas/BookList'
+        - type: object
+          properties:
+            description: { type: string, nullable: true }
+            isbn: { type: string, nullable: true }
+            publisher: { type: string, nullable: true }
+            pages: { type: integer, nullable: true }
+            language: { type: string, nullable: true }
+            total_copies: { type: integer }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+
+    BookInput:
+      type: object
+      required: [title, total_copies]
+      properties:
+        title: { type: string, maxLength: 300 }
+        description: { type: string }
+        isbn: { type: string }
+        published_year: { type: integer }
+        publisher: { type: string }
+        pages: { type: integer, minimum: 1 }
+        language: { type: string }
+        cover_url: { type: string, format: uri }
+        total_copies: { type: integer, minimum: 0 }
+        author_ids:
+          type: array
+          items: { type: string, format: uuid }
+        genre_ids:
+          type: array
+          items: { type: string, format: uuid }
+
+    Review:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        book: { type: string, format: uuid }
+        user: { $ref: '#/components/schemas/User' }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ReviewInput:
+      type: object
+      required: [rating]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, maxLength: 2000 }
+
+    Loan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        book: { $ref: '#/components/schemas/BookList' }
+        user_id: { type: string, format: uuid }
+        borrowed_at: { type: string, format: date-time }
+        due_at: { type: string, format: date-time }
+        returned_at: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [active, returned, overdue] }
+
+    PaginatedAuthors:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, nullable: true }
+        previous: { type: string, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/Author' }
+
+    PaginatedGenres:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, nullable: true }
+        previous: { type: string, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/Genre' }
+
+    PaginatedBooks:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, nullable: true }
+        previous: { type: string, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/BookList' }
+
+    PaginatedReviews:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, nullable: true }
+        previous: { type: string, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/Review' }
+
+    PaginatedLoans:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, nullable: true }
+        previous: { type: string, nullable: true }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/Loan' }
