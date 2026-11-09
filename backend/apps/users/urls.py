@@ -1,6 +1,3 @@
-"""
-Маршруты приложения пользователей (префикс /api/v1/auth/ подключается в корневом urls.py).
-"""
 from django.urls import path
 from .views import LoginView, LogoutView, MeView, RegisterView
 

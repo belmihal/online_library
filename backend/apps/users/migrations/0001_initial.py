@@ -1,4 +1,3 @@
-# Generated initial migration for custom User model with role field
 import django.contrib.auth.models
 import django.contrib.auth.validators
 import django.utils.timezone

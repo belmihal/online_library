@@ -18,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     """
     Сериализатор регистрации нового читателя (Форма 2 на фронтенде).
-    Проверяет совпадение паролей password и password_confirm (или password2).
+    Проверяет совпадение паролей password и password_confirm.
     """
     password = serializers.CharField(
         write_only=True,
@@ -40,7 +40,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Проверяем совпадение паролей, если передано поле подтверждения."""
         password = attrs.get("password")
-        # Поддерживаем как password_confirm, так и случай, если фронтенд не прислал его
         password_confirm = attrs.pop("password_confirm", None)
         if password_confirm is not None and password_confirm != "" and password != password_confirm:
             raise serializers.ValidationError(
@@ -68,7 +67,6 @@ class LoginSerializer(serializers.Serializer):
         username_or_email = attrs.get("username", "").strip()
         password = attrs.get("password", "")
 
-        # Если пользователь ввел email вместо username, найдем его username
         if "@" in username_or_email:
             user_obj = User.objects.filter(email__iexact=username_or_email).first()
             if user_obj:

@@ -1,9 +1,5 @@
 """
-Представления (Views) для аутентификации и профиля пользователя:
-- POST /api/v1/auth/register/ — регистрация нового читателя и выдача токена;
-- POST /api/v1/auth/login/    — вход в систему и получение бессрочного токена;
-- POST /api/v1/auth/logout/   — выход из системы (удаление токена);
-- GET  /api/v1/auth/me/       — получение профиля текущего авторизованного пользователя.
+Представления (Views) для аутентификации и профиля пользователя.
 """
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -15,11 +11,6 @@ from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 
 
 class RegisterView(APIView):
-    """
-    Регистрация нового читателя.
-    Сразу создает бессрочный токен и возвращает {'token': '...', 'user': {...}},
-    чтобы студент мог сразу войти или перенаправить пользователя на страницу входа.
-    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -27,7 +18,6 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Создаем или получаем постоянный токен для нового пользователя
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
             {
@@ -39,10 +29,6 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    """
-    Вход пользователя по логину и паролю.
-    Возвращает бессрочный токен и объект пользователя (id, username, email, role).
-    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -50,7 +36,6 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
 
-        # Получаем существующий или создаем новый токен
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
             {
@@ -62,10 +47,6 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    """
-    Выход из системы.
-    Удаляет текущий токен пользователя из базы данных.
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -77,10 +58,6 @@ class LogoutView(APIView):
 
 
 class MeView(APIView):
-    """
-    Получение данных текущего авторизованного пользователя (профиль).
-    Используется фронтендом для проверки сессии и отображения личного кабинета.
-    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

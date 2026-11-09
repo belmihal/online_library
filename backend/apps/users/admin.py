@@ -1,4 +1,3 @@
-"""Регистрация модели User в стандартной админ-панели Django."""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User

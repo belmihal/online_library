@@ -18,9 +18,7 @@ class FlexibleTokenAuthentication(TokenAuthentication):
         if prefix not in (b"token", b"bearer"):
             return None
 
-        if len(auth) == 1:
-            return None
-        if len(auth) > 2:
+        if len(auth) != 2:
             return None
 
         try:
