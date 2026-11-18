@@ -3,31 +3,28 @@ import { Link } from 'react-router-dom';
 import { apiFetch, uploadBooksCsv } from '../api.js';
 
 /**
- * Страница 6 из ARCHITECTURE.md: Панель администратора (/admin)
+ * Панель администратора LitHub (/admin)
  * Доступна только пользователям с ролью 'admin'.
  * Реализует:
- * 1. Форму 5: Добавление новой книги в каталог (с выбором авторов и жанров M2M).
- * 2. Импорт книг из CSV-файла (POST /api/v1/books/import-csv/) — пункт на доп. баллы.
- * 3. Таблицу управления всеми книгами с возможностью удаления книги (DELETE /api/v1/books/{id}/).
+ * 1. Массовый импорт цифровых книг из CSV-файла (POST /api/v1/books/import-csv/).
+ * 2. Форму создания новой книги (POST /api/v1/books/) с выбором авторов и жанров (M2M).
+ * 3. Таблицу управления всеми книгами (GET /api/v1/books/?page_size=100) с удалением (DELETE /api/v1/books/{id}/).
  */
 export default function AdminPage() {
-  // Списки книг, авторов и жанров
   const [books, setBooks] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Уведомления об успехе и ошибках
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Поля Формы 5 (Создание новой книги)
+  // Поля формы создания новой книги
   const [title, setTitle] = useState('');
   const [isbn, setIsbn] = useState('');
   const [publishedYear, setPublishedYear] = useState(2024);
   const [pages, setPages] = useState(250);
   const [publisher, setPublisher] = useState('АСТ');
-  const [totalCopies, setTotalCopies] = useState(3);
   const [description, setDescription] = useState('');
   const [selectedAuthorIds, setSelectedAuthorIds] = useState([]);
   const [selectedGenreIds, setSelectedGenreIds] = useState([]);
@@ -37,12 +34,11 @@ export default function AdminPage() {
   const [csvFile, setCsvFile] = useState(null);
   const [csvUploading, setCsvUploading] = useState(false);
 
-  // Загрузка справочников и списка книг
   async function loadAdminData() {
     setLoading(true);
     try {
       const [booksData, authorsData, genresData] = await Promise.all([
-        apiFetch('/books/?page_size=50'),
+        apiFetch('/books/?page_size=100'),
         apiFetch('/authors/'),
         apiFetch('/genres/'),
       ]);
@@ -60,21 +56,19 @@ export default function AdminPage() {
     loadAdminData();
   }, []);
 
-  // Переключение чекбокса выбора автора (M2M)
   function toggleAuthorId(id) {
     setSelectedAuthorIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   }
 
-  // Переключение чекбокса выбора жанра (M2M)
   function toggleGenreId(id) {
     setSelectedGenreIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   }
 
-  // Обработчик Формы 5: Создание новой книги (POST /api/v1/books/)
+  // Создание новой цифровой книги (POST /api/v1/books/)
   async function handleCreateBook(event) {
     event.preventDefault();
     setError('');
@@ -90,16 +84,13 @@ export default function AdminPage() {
           published_year: Number(publishedYear),
           pages: Number(pages),
           publisher: publisher.trim(),
-          total_copies: Number(totalCopies),
-          available_copies: Number(totalCopies),
           description: description.trim(),
           author_ids: selectedAuthorIds,
           genre_ids: selectedGenreIds,
         }),
       });
 
-      setSuccessMessage(`Книга «${title}» успешно добавлена в каталог!`);
-      // Очищаем поля формы
+      setSuccessMessage(`Книга «${title}» успешно добавлена в каталог LitHub!`);
       setTitle('');
       setIsbn('');
       setDescription('');
@@ -114,7 +105,7 @@ export default function AdminPage() {
     }
   }
 
-  // Обработчик импорта книг из CSV-файла (POST /api/v1/books/import-csv/)
+  // Импорт книг из CSV-файла (POST /api/v1/books/import-csv/)
   async function handleCsvUpload(event) {
     event.preventDefault();
     setError('');
@@ -157,7 +148,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1 className="page-title">Панель администратора библиотеки</h1>
+      <h1 className="page-title">Панель администратора LitHub</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
@@ -166,7 +157,7 @@ export default function AdminPage() {
       <div className="card">
         <h2 className="section-title">Массовый импорт книг из CSV-файла</h2>
         <p style={{ fontSize: '0.9rem', color: 'var(--muted-color)', marginBottom: '12px' }}>
-          Поддерживаются колонки: <code>title, isbn, published_year, publisher, pages, total_copies, description</code>.
+          Поддерживаются колонки: <code>title, isbn, published_year, publisher, pages, description</code>.
         </p>
 
         <form
@@ -186,7 +177,7 @@ export default function AdminPage() {
         </form>
       </div>
 
-      {/* Блок 2: Форма 5 — Создание новой книги */}
+      {/* Блок 2: Форма создания новой цифровой книги */}
       <div className="card">
         <h2 className="section-title">Добавить новую книгу в каталог</h2>
 
@@ -258,22 +249,8 @@ export default function AdminPage() {
                 onChange={(e) => setPublisher(e.target.value)}
               />
             </div>
-
-            <div className="form-group">
-              <label htmlFor="book-copies">Количество экземпляров</label>
-              <input
-                id="book-copies"
-                type="number"
-                min="1"
-                className="input"
-                value={totalCopies}
-                onChange={(e) => setTotalCopies(e.target.value)}
-                required
-              />
-            </div>
           </div>
 
-          {/* Выбор авторов (M2M) */}
           <div className="form-group" style={{ marginTop: '8px' }}>
             <label>Выберите авторов книги:</label>
             <div className="badges-row">
@@ -294,7 +271,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Выбор жанров (M2M) */}
           <div className="form-group">
             <label>Выберите жанры книги:</label>
             <div className="badges-row">
@@ -332,7 +308,7 @@ export default function AdminPage() {
         </form>
       </div>
 
-      {/* Блок 3: Таблица всех книг каталога */}
+      {/* Блок 3: Таблица всех книг каталога LitHub */}
       <div className="card">
         <h2 className="section-title">Управление книгами в каталоге ({books.length})</h2>
 
@@ -345,39 +321,48 @@ export default function AdminPage() {
                 <tr>
                   <th>ID</th>
                   <th>Название</th>
-                  <th>ISBN</th>
+                  <th>Авторы / ISBN</th>
                   <th>Год</th>
-                  <th>Копии (Доступно / Всего)</th>
+                  <th>Страниц</th>
                   <th>Рейтинг</th>
                   <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {books.map((b) => (
-                  <tr key={b.id}>
-                    <td>{b.id}</td>
-                    <td>
-                      <Link to={`/books/${b.id}`}>
-                        <strong>{b.title}</strong>
-                      </Link>
-                    </td>
-                    <td>{b.isbn}</td>
-                    <td>{b.published_year}</td>
-                    <td>
-                      {b.available_copies} / {b.total_copies}
-                    </td>
-                    <td>⭐ {Number(b.avg_rating || 0).toFixed(1)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-danger"
-                        onClick={() => handleDeleteBook(b.id, b.title)}
-                      >
-                        Удалить
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {books.map((b) => {
+                  const authorsText =
+                    b.authors && b.authors.length > 0
+                      ? b.authors.map((a) => a.full_name || `${a.first_name} ${a.last_name}`).join(', ')
+                      : 'Автор не указан';
+                  return (
+                    <tr key={b.id}>
+                      <td>{b.id}</td>
+                      <td>
+                        <Link to={`/books/${b.id}`}>
+                          <strong>{b.title}</strong>
+                        </Link>
+                      </td>
+                      <td>
+                        <div>{authorsText}</div>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--muted-color)' }}>
+                          {b.isbn}
+                        </div>
+                      </td>
+                      <td>{b.published_year}</td>
+                      <td>{b.pages}</td>
+                      <td>⭐ {Number(b.avg_rating || 0).toFixed(1)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={() => handleDeleteBook(b.id, b.title)}
+                        >
+                          Удалить
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

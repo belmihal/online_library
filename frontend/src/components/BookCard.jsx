@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 /**
- * Компонент карточки книги (src/components/BookCard.jsx).
- * Отображает одну книгу в каталоге как в режиме «Плитка» (grid), так и в режиме «Список» (list).
+ * Компонент карточки цифровой книги LitHub (src/components/BookCard.jsx).
+ * Отображает книгу в каталоге в режиме «Плитка» (grid) или «Список» (list).
  */
 export default function BookCard({ book, viewMode = 'grid' }) {
   // Формируем строку с именами авторов книги
@@ -12,25 +12,18 @@ export default function BookCard({ book, viewMode = 'grid' }) {
       ? book.authors.map((a) => a.full_name || `${a.first_name} ${a.last_name}`).join(', ')
       : 'Автор не указан';
 
-  // Проверяем, есть ли свободные экземпляры для выдачи
-  const isAvailable = book.available_copies > 0;
-
   return (
     <div className={`book-card ${viewMode === 'list' ? 'book-card-list' : ''}`}>
-      {/* Блок обложки: если cover_url задан — показываем картинку, иначе стильную заглушку */}
+      {/* Блок обложки: картинка по cover_url или аккуратная заглушка */}
       {book.cover_url ? (
-        <img
-          src={book.cover_url}
-          alt={book.title}
-          className="book-cover"
-        />
+        <img src={book.cover_url} alt={book.title} className="book-cover" />
       ) : (
         <div className="book-cover">
           <span>📚 {book.title}</span>
         </div>
       )}
 
-      {/* Основная информация о книге */}
+      {/* Основная информация о цифровой книге */}
       <div style={{ flex: 1 }}>
         <div className="book-title">
           <Link to={`/books/${book.id}`}>{book.title}</Link>
@@ -50,7 +43,7 @@ export default function BookCard({ book, viewMode = 'grid' }) {
             ))}
         </div>
 
-        {/* Краткое описание (обрезаем до 120 символов для аккуратности карточки) */}
+        {/* Краткая аннотация книги */}
         {book.description && (
           <p style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
             {book.description.length > 120
@@ -59,24 +52,22 @@ export default function BookCard({ book, viewMode = 'grid' }) {
           </p>
         )}
 
-        {/* Рейтинг и наличие экземпляров */}
+        {/* Рейтинг и бейдж цифрового издания */}
         <div className="badges-row" style={{ alignItems: 'center' }}>
           <span className="badge">
             ⭐ Рейтинг: {Number(book.avg_rating || 0).toFixed(1)}
           </span>
 
-          <span className={`badge ${isAvailable ? 'badge-available' : 'badge-out'}`}>
-            {isAvailable
-              ? `В наличии: ${book.available_copies} из ${book.total_copies}`
-              : 'Нет свободных копий'}
+          <span className="badge badge-digital">
+            📱 Цифровая книга • {book.pages} стр.
           </span>
         </div>
       </div>
 
-      {/* Кнопка перехода к подробной странице книги */}
+      {/* Кнопка перехода на страницу книги */}
       <div>
         <Link to={`/books/${book.id}`} className="btn btn-primary">
-          Подробнее
+          Открыть книгу
         </Link>
       </div>
     </div>

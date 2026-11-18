@@ -10,10 +10,10 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 
 /**
- * Корневой компонент приложения (src/App.jsx).
+ * Корневой компонент приложения LitHub (src/App.jsx).
  * Отвечает за:
- * 1. Хранение текущего пользователя (из localStorage) и проверку сессии (/auth/me/)
- * 2. Переключение светлой и темной темы оформления (с сохранением в localStorage)
+ * 1. Хранение текущего пользователя в localStorage и проверку сессии (/auth/me/)
+ * 2. Переключение светлой и темной оранжевой темы (с сохранением в localStorage)
  * 3. Шапку навигации (Header) и маршрутизацию по всем 6 страницам через <BrowserRouter>
  */
 export default function App() {
@@ -28,18 +28,18 @@ export default function App() {
     }
   });
 
-  // Состояние темы оформления: 'light' (светлая) или 'dark' (темная)
+  // Состояние темы оформления: 'light' (светло-оранжевая) или 'dark' (тёмно-оранжевая)
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
 
-  // При каждом изменении темы обновляем атрибут data-theme на теге <body> и сохраняем в localStorage
+  // Обновляем атрибут data-theme на <body> при смене темы
   useEffect(() => {
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Если в localStorage есть токен, при старте уточняем актуальный профиль пользователя (/auth/me/)
+  // Проверяем актуальный профиль пользователя по токену при загрузке страницы
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -50,19 +50,16 @@ export default function App() {
         localStorage.setItem('user', JSON.stringify(meData));
       })
       .catch(() => {
-        // Если токен оказался недействительным — очищаем localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
       });
   }, []);
 
-  // Функция переключения темы «Светлая / Темная»
   function toggleTheme() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }
 
-  // Функция выхода из аккаунта
   async function handleLogout() {
     try {
       await apiFetch('/auth/logout/', { method: 'POST' });
@@ -76,11 +73,11 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* Шапка сайта с навигацией и переключателем темы */}
+      {/* Шапка сайта LitHub с навигацией и переключателем темы */}
       <header className="navbar">
         <div className="navbar-inner">
           <Link to="/" className="navbar-brand">
-            📖 Онлайн-библиотека
+            📚 LitHub
           </Link>
 
           <nav className="navbar-links">
@@ -88,21 +85,18 @@ export default function App() {
               Каталог книг
             </Link>
 
-            {/* Если пользователь вошел — показываем Личный кабинет */}
             {user && (
               <Link to="/profile" className="nav-link">
-                Мои книги и отзывы
+                Моя полка и отзывы
               </Link>
             )}
 
-            {/* Если роль пользователя 'admin' — показываем ссылку на Админ-панель */}
             {user && user.role === 'admin' && (
               <Link to="/admin" className="nav-link">
                 Админ-панель
               </Link>
             )}
 
-            {/* Кнопка переключения светлой и темной темы */}
             <button
               type="button"
               className="btn btn-outline"
@@ -112,7 +106,6 @@ export default function App() {
               {theme === 'light' ? '🌙 Темная тема' : '☀️ Светлая тема'}
             </button>
 
-            {/* Блок авторизации: имя пользователя + кнопка Выйти ИЛИ ссылки Вход / Регистрация */}
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="badge">
@@ -139,36 +132,19 @@ export default function App() {
       {/* Основная область контента с маршрутами всех 6 страниц */}
       <main className="container">
         <Routes>
-          {/* 1. Главная страница — Каталог книг */}
           <Route path="/" element={<CatalogPage />} />
-
-          {/* 2. Страница входа */}
-          <Route
-            path="/login"
-            element={<LoginPage onLoginSuccess={(u) => setUser(u)} />}
-          />
-
-          {/* 3. Страница регистрации */}
-          <Route
-            path="/register"
-            element={<RegisterPage onLoginSuccess={(u) => setUser(u)} />}
-          />
-
-          {/* 4. Страница детальной информации о книге */}
+          <Route path="/login" element={<LoginPage onLoginSuccess={(u) => setUser(u)} />} />
+          <Route path="/register" element={<RegisterPage onLoginSuccess={(u) => setUser(u)} />} />
           <Route path="/books/:id" element={<BookPage user={user} />} />
-
-          {/* 5. Личный кабинет читателя (защищенный маршрут: только для авторизованных) */}
           <Route
             path="/profile"
             element={user ? <ProfilePage user={user} /> : <Navigate to="/login" replace />}
           />
-
-          {/* 6. Панель администратора (защищенный маршрут: только для role === 'admin') */}
           <Route
             path="/admin"
             element={
               user && user.role === 'admin' ? (
-                <AdminPage user={user} />
+                <AdminPage />
               ) : (
                 <Navigate to="/" replace />
               )

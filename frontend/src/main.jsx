@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
 
-// Точка входа в React-приложение: рендерим корневой компонент <App /> в #root
+// Точка входа в React-приложение LitHub
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

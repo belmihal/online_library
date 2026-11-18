@@ -1,39 +1,39 @@
 /* ==========================================================================
-   Единый файл стилей проекта «Онлайн-библиотека книг» (src/styles.css)
+   Единый файл стилей цифровой онлайн-библиотеки «LitHub» (src/styles.css)
    Поддерживает:
-   1. Светлую и темную тему через CSS-переменные (атрибут data-theme="dark" на body)
-   2. Переключение вида каталога: «Плитка» (.books-grid) и «Список» (.books-list)
-   3. Адаптивную верстку для мобильных экранов (@media max-width: 768px)
+   1. Светлую тему (:root) в тёплой кремово-оранжевой гамме
+   2. Темную тему (body[data-theme="dark"]) в шоколадно-янтарной гамме
+   3. Переключение вида каталога: «Плитка» (.books-grid) и «Список» (.books-list)
+   4. Встроенную читалку (.reader-box) и адаптивность (@media max-width: 768px)
    ========================================================================== */
 
 :root {
-  --bg-color: #f5f7fb;
+  --bg-color: #fff7ed;
   --surface-color: #ffffff;
-  --text-color: #1e293b;
-  --muted-color: #64748b;
-  --border-color: #e2e8f0;
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
+  --text-color: #291d16;
+  --muted-color: #786355;
+  --border-color: #fed7aa;
+  --primary-color: #ea580c;
+  --primary-hover: #c2410c;
   --success-color: #16a34a;
   --danger-color: #dc2626;
-  --warning-color: #d97706;
-  --badge-bg: #eff6ff;
-  --badge-text: #1e40af;
-  --shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --badge-bg: #ffedd5;
+  --badge-text: #9a3412;
+  --shadow: 0 4px 12px rgba(154, 52, 18, 0.08);
 }
 
 /* Переопределение переменных для темной темы */
 body[data-theme="dark"] {
-  --bg-color: #0f172a;
-  --surface-color: #1e293b;
-  --text-color: #f1f5f9;
-  --muted-color: #94a3b8;
-  --border-color: #334155;
-  --primary-color: #3b82f6;
-  --primary-hover: #60a5fa;
-  --badge-bg: #1e3a8a;
-  --badge-text: #dbeafe;
-  --shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --bg-color: #180d07;
+  --surface-color: #27150c;
+  --text-color: #fff7ed;
+  --muted-color: #d6b8a5;
+  --border-color: #4a2511;
+  --primary-color: #f97316;
+  --primary-hover: #fb923c;
+  --badge-bg: #7c2d12;
+  --badge-text: #ffedd5;
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -88,9 +88,9 @@ a:hover {
 }
 
 .navbar-brand {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-color);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--primary-color);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -233,7 +233,7 @@ a:hover {
   grid-template-columns: 2fr 1fr 1fr 1fr auto;
   gap: 12px;
   align-items: end;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .toolbar-row {
@@ -334,14 +334,36 @@ a:hover {
   color: var(--badge-text);
 }
 
-.badge-available {
-  background-color: rgba(22, 163, 74, 0.15);
-  color: var(--success-color);
+/* Бейдж цифрового издания LitHub */
+.badge-digital {
+  background-color: rgba(234, 88, 12, 0.14);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
 }
 
-.badge-out {
-  background-color: rgba(220, 38, 38, 0.15);
-  color: var(--danger-color);
+/* Встроенная читалка цифровой книги */
+.reader-box {
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+}
+
+.reader-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reader-content {
+  line-height: 1.75;
+  white-space: pre-line;
 }
 
 /* Уведомления об ошибках и успехе */
@@ -364,7 +386,7 @@ a:hover {
   border: 1px solid var(--success-color);
 }
 
-/* Таблицы (для личного кабинета и админ-панели на Шаге 2) */
+/* Таблицы (для личной полки и админ-панели) */
 .table-wrapper {
   overflow-x: auto;
 }

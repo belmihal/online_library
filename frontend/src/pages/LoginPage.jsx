@@ -3,22 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api.js';
 
 /**
- * Страница 2 из ARCHITECTURE.md: Вход в систему (/login)
- * Содержит Форму 1 (логин/email + пароль).
- * При успешном входе сохраняет token и user в localStorage и перенаправляет в каталог.
+ * Страница входа в цифровую библиотеку LitHub (/login)
  */
 export default function LoginPage({ onLoginSuccess }) {
   const navigate = useNavigate();
 
-  // Состояния полей формы
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
-  // Состояния загрузки и текста ошибки
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Обработчик отправки формы входа
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -30,16 +24,13 @@ export default function LoginPage({ onLoginSuccess }) {
         body: JSON.stringify({ username, password }),
       });
 
-      // Сохраняем бессрочный токен и данные пользователя в localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Сообщаем родительскому компоненту App.jsx об успешном входе
       if (onLoginSuccess) {
         onLoginSuccess(data.user);
       }
 
-      // Переходим на главную страницу каталога
       navigate('/');
     } catch (err) {
       setError(err.message || 'Не удалось выполнить вход. Проверьте логин и пароль.');
@@ -50,7 +41,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
   return (
     <div className="form-box card">
-      <h1 className="page-title">Вход в библиотеку</h1>
+      <h1 className="page-title">Вход в LitHub</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -91,7 +82,6 @@ export default function LoginPage({ onLoginSuccess }) {
         </button>
       </form>
 
-      {/* Подсказка с демо-аккаунтами из команды seed_demo для удобной демонстрации на защите */}
       <div
         style={{
           marginTop: '18px',
@@ -101,7 +91,7 @@ export default function LoginPage({ onLoginSuccess }) {
           color: 'var(--muted-color)',
         }}
       >
-        <p><strong>Демо-аккаунты для проверки:</strong></p>
+        <p><strong>Демо-аккаунты LitHub для проверки:</strong></p>
         <p>• Читатель: <code>reader</code> / <code>reader123</code></p>
         <p>• Администратор: <code>admin</code> / <code>admin123</code></p>
         <p style={{ marginTop: '10px' }}>

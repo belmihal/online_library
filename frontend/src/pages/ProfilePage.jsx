@@ -3,30 +3,29 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../api.js';
 
 /**
- * Страница 5 из ARCHITECTURE.md: Личный кабинет читателя (/profile)
+ * Личный кабинет читателя LitHub (/profile)
  * Реализует:
- * 1. Отображение данных текущего пользователя (логин, email, роль).
- * 2. Таблицу взятых книг (GET /api/v1/loans/) с фильтрацией и кнопкой «Вернуть книгу»
- *    (POST /api/v1/loans/{id}/return/), которая переводит статус в 'returned' и возвращает копию в каталог.
- * 3. Список всех отзывов, оставленных этим пользователем (GET /api/v1/reviews/?mine=true), с возможностью удаления.
+ * 1. Карточку профиля текущего пользователя.
+ * 2. Секцию «Моя книжная полка» (GET /api/v1/shelf/) с кнопкой «Убрать с полки» (DELETE /api/v1/shelf/{id}/).
+ * 3. Секцию «Мои отзывы» (GET /api/v1/reviews/?mine=true) с возможностью удаления.
  */
 export default function ProfilePage({ user }) {
-  const [loans, setLoans] = useState([]);
+  const [shelfItems, setShelfItems] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Загружаем список взятых книг и моих отзывов
+  // Загружаем книги на полке пользователя и его отзывы
   async function loadProfileData() {
     setLoading(true);
     setError('');
     try {
-      const [loansData, reviewsData] = await Promise.all([
-        apiFetch('/loans/'),
+      const [shelfData, reviewsData] = await Promise.all([
+        apiFetch('/shelf/'),
         apiFetch('/reviews/?mine=true'),
       ]);
-      setLoans(Array.isArray(loansData) ? loansData : loansData.results || []);
+      setShelfItems(Array.isArray(shelfData) ? shelfData : shelfData.results || []);
       setMyReviews(Array.isArray(reviewsData) ? reviewsData : reviewsData.results || []);
     } catch (err) {
       setError(err.message || 'Ошибка при загрузке данных личного кабинета.');
@@ -39,22 +38,22 @@ export default function ProfilePage({ user }) {
     loadProfileData();
   }, []);
 
-  // Обработчик кнопки «Вернуть книгу» (POST /api/v1/loans/{id}/return/)
-  async function handleReturnBook(loanId, bookTitle) {
+  // Удаление книги с личной книжной полки (DELETE /api/v1/shelf/{id}/)
+  async function handleRemoveFromShelf(shelfItemId, bookTitle) {
     setError('');
     setSuccessMessage('');
     try {
-      await apiFetch(`/loans/${loanId}/return/`, {
-        method: 'POST',
+      await apiFetch(`/shelf/${shelfItemId}/`, {
+        method: 'DELETE',
       });
-      setSuccessMessage(`Книга «${bookTitle}» успешно возвращена в библиотеку!`);
+      setSuccessMessage(`Книга «${bookTitle}» убрана с вашей полки.`);
       await loadProfileData();
     } catch (err) {
-      setError(err.message || 'Не удалось оформить возврат книги.');
+      setError(err.message || 'Не удалось убрать книгу с полки.');
     }
   }
 
-  // Удаление собственного отзыва из личного кабинета
+  // Удаление собственного отзыва
   async function handleDeleteMyReview(reviewId) {
     setError('');
     setSuccessMessage('');
@@ -69,7 +68,6 @@ export default function ProfilePage({ user }) {
     }
   }
 
-  // Форматирование даты для наглядного отображения в таблице
   function formatDate(dateStr) {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('ru-RU');
@@ -77,12 +75,12 @@ export default function ProfilePage({ user }) {
 
   return (
     <div>
-      <h1 className="page-title">Личный кабинет читателя</h1>
+      <h1 className="page-title">Моя полка и отзывы</h1>
 
       {/* Карточка профиля пользователя */}
       {user && (
         <div className="card">
-          <h2 className="section-title">Профиль пользователя</h2>
+          <h2 className="section-title">Профиль читателя LitHub</h2>
           <p>
             <strong>Логин:</strong> {user.username} • <strong>Email:</strong> {user.email} •{' '}
             <strong>Роль:</strong>{' '}
@@ -96,15 +94,16 @@ export default function ProfilePage({ user }) {
       {error && <div className="alert alert-error">{error}</div>}
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
-      {/* Секция 1: Взятые книги (активные и история возвратов) */}
+      {/* Секция 1: Моя книжная полка */}
       <div className="card">
-        <h2 className="section-title">Мои взятые книги ({loans.length})</h2>
+        <h2 className="section-title">Моя книжная полка ({shelfItems.length})</h2>
 
         {loading ? (
-          <p>Загрузка списка выдач...</p>
-        ) : loans.length === 0 ? (
+          <p>Загрузка вашей книжной полки...</p>
+        ) : shelfItems.length === 0 ? (
           <p style={{ color: 'var(--muted-color)' }}>
-            У вас пока нет взятых книг. Перейдите в <Link to="/">каталог</Link>, чтобы выбрать книгу!
+            На вашей полке пока нет сохранённых книг. Перейдите в <Link to="/">каталог LitHub</Link>,
+            чтобы добавить интересующие книги!
           </p>
         ) : (
           <div className="table-wrapper">
@@ -112,45 +111,39 @@ export default function ProfilePage({ user }) {
               <thead>
                 <tr>
                   <th>Книга</th>
-                  <th>Дата выдачи</th>
-                  <th>Срок возврата</th>
-                  <th>Дата возврата</th>
-                  <th>Статус</th>
-                  <th>Действие</th>
+                  <th>Авторы</th>
+                  <th>Дата добавления</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {loans.map((loan) => {
-                  const isActive = loan.status === 'active';
+                {shelfItems.map((item) => {
+                  const authorsText =
+                    Array.isArray(item.book_authors) && item.book_authors.length > 0
+                      ? item.book_authors.join(', ')
+                      : 'Автор не указан';
                   return (
-                    <tr key={loan.id}>
+                    <tr key={item.id}>
                       <td>
-                        <Link to={`/books/${loan.book}`}>
-                          <strong>{loan.book_title || `Книга #${loan.book}`}</strong>
+                        <Link to={`/books/${item.book}`}>
+                          <strong>{item.book_title || `Книга #${item.book}`}</strong>
                         </Link>
                       </td>
-                      <td>{formatDate(loan.borrowed_at)}</td>
-                      <td>{formatDate(loan.due_at)}</td>
-                      <td>{formatDate(loan.returned_at)}</td>
+                      <td>{authorsText}</td>
+                      <td>{formatDate(item.added_at)}</td>
                       <td>
-                        <span className={`badge ${isActive ? 'badge-out' : 'badge-available'}`}>
-                          {isActive ? 'На руках' : 'Возвращена'}
-                        </span>
-                      </td>
-                      <td>
-                        {isActive ? (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <Link to={`/books/${item.book}`} className="btn btn-primary">
+                            📖 Читать
+                          </Link>
                           <button
                             type="button"
-                            className="btn btn-success"
-                            onClick={() => handleReturnBook(loan.id, loan.book_title)}
+                            className="btn btn-outline"
+                            onClick={() => handleRemoveFromShelf(item.id, item.book_title)}
                           >
-                            Вернуть книгу
+                            Убрать с полки
                           </button>
-                        ) : (
-                          <span style={{ color: 'var(--muted-color)', fontSize: '0.88rem' }}>
-                            Сдана в архив
-                          </span>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );

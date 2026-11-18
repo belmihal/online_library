@@ -3,19 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api.js';
 
 /**
- * Страница 3 из ARCHITECTURE.md: Регистрация нового читателя (/register)
- * Содержит Форму 2 (username, email, password, password_confirm) с клиентской проверкой совпадения паролей.
+ * Страница регистрации читателя LitHub (/register)
  */
 export default function RegisterPage({ onLoginSuccess }) {
   const navigate = useNavigate();
 
-  // Поля формы регистрации
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-
-  // Состояния загрузки и ошибок
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,7 +19,6 @@ export default function RegisterPage({ onLoginSuccess }) {
     event.preventDefault();
     setError('');
 
-    // Простая клиентская валидация перед отправкой на сервер
     if (password.length < 4) {
       setError('Пароль должен содержать минимум 4 символа.');
       return;
@@ -46,7 +41,6 @@ export default function RegisterPage({ onLoginSuccess }) {
         }),
       });
 
-      // Бэкенд сразу возвращает token и user — сохраняем их и авторизуем студента
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
@@ -64,7 +58,7 @@ export default function RegisterPage({ onLoginSuccess }) {
 
   return (
     <div className="form-box card">
-      <h1 className="page-title">Регистрация читателя</h1>
+      <h1 className="page-title">Регистрация в LitHub</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -88,7 +82,7 @@ export default function RegisterPage({ onLoginSuccess }) {
             id="reg-email"
             type="email"
             className="input"
-            placeholder="student@example.com"
+            placeholder="student@lithub.local"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -132,7 +126,7 @@ export default function RegisterPage({ onLoginSuccess }) {
       </form>
 
       <p style={{ marginTop: '16px', fontSize: '0.9rem', color: 'var(--muted-color)' }}>
-        Уже есть аккаунт? <Link to="/login">Войти в систему</Link>
+        Уже есть аккаунт? <Link to="/login">Войти в LitHub</Link>
       </p>
     </div>
   );
