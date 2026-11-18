@@ -1,6 +1,6 @@
 """
-Единый файл настроек Django-проекта «Онлайн-библиотека книг».
-Работает на встроенной базе данных SQLite3 из коробки — без необходимости устанавливать PostgreSQL.
+Единый файл настроек Django-проекта цифровой онлайн-библиотеки «LitHub».
+Работает на встроенной базе данных SQLite3 (db.sqlite3) из коробки.
 """
 import os
 from pathlib import Path
@@ -8,19 +8,19 @@ from pathlib import Path
 # Базовая директория проекта (папка backend/)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Секретный ключ (для учебного проекта задано безопасное значение по умолчанию)
+# Секретный ключ приложения
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
-    "django-insecure-online-library-student-project-key-2026"
+    "django-insecure-lithub-digital-library-project-key-2026",
 )
 
-# Режим отладки (включен по умолчанию для удобной разработки и защиты)
+# Режим отладки
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes")
 
-# Разрешаем запросы с любых локальных адресов
+# Разрешенные хосты
 ALLOWED_HOSTS = ["*"]
 
-# Подключенные приложения проекта
+# Подключенные приложения проекта LitHub
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -30,21 +30,19 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Сторонние библиотеки
     "rest_framework",
-    "rest_framework.authtoken",  # Простая и надежная бессрочная токен-аутентификация
-    "corsheaders",               # Разрешение запросов с React-фронтенда (CORS)
+    "rest_framework.authtoken",  # Бессрочная токен-аутентификация
+    "corsheaders",               # Разрешение CORS-запросов с React-фронтенда
     "django_filters",            # Фильтрация каталога книг
-    "drf_spectacular",           # Генерация документации Swagger (/api/v1/docs/)
-    # Приложения нашего проекта (подключаются по мере выполнения Шагов 1, 2 и 3)
+    "drf_spectacular",           # Интерактивная документация Swagger (/api/v1/docs/)
+    # Приложения цифровой библиотеки LitHub
     "apps.users",
+    "apps.catalog",
+    "apps.reviews",
+    "apps.shelf",
 ]
 
-# Автоматически подключаем приложения Шага 2 и Шага 3, когда их папки будут добавлены
-for app_label in ("catalog", "reviews", "loans"):
-    if (BASE_DIR / "apps" / app_label).exists():
-        INSTALLED_APPS.append(f"apps.{app_label}")
-
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  # Должен быть как можно выше для работы CORS
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -75,7 +73,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "library_project.wsgi.application"
 ASGI_APPLICATION = "library_project.asgi.application"
 
-# База данных: используем только легкую и надежную SQLite3 (файл db.sqlite3 в папке backend/)
+# База данных SQLite3 (файл db.sqlite3 создается в папке backend/)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -83,10 +81,10 @@ DATABASES = {
     }
 }
 
-# Указываем нашу кастомную модель пользователя с полем role ('reader' | 'admin')
+# Кастомная модель пользователя с полем role ('reader' | 'admin')
 AUTH_USER_MODEL = "users.User"
 
-# Валидаторы паролей отключены для удобства тестирования и демонстрации на защите
+# Валидаторы паролей отключены для удобства тестирования на защите
 AUTH_PASSWORD_VALIDATORS = []
 
 # Локализация и часовой пояс
@@ -99,38 +97,33 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Разрешаем все CORS-запросы с клиентского React-приложения (например, http://localhost:5173)
+# Разрешаем CORS-запросы с фронтенда
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # Настройки Django REST Framework
 REST_FRAMEWORK = {
-    # Аутентификация по бессрочному токену (поддерживает заголовки Token <key> и Bearer <key>)
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.users.authentication.FlexibleTokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    # По умолчанию разрешаем чтение всем, а изменение — авторизованным
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
-    # Бэкенды фильтрации, поиска и сортировки по умолчанию
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
-    # Пагинация списков (по 12 элементов на страницу — удобно для сетки карточек)
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "library_project.pagination.StandardResultsSetPagination",
     "PAGE_SIZE": 12,
-    # Генератор схемы OpenAPI 3.0
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-# Настройки Swagger-документации (drf-spectacular)
+# Настройки документации OpenAPI / Swagger UI
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Онлайн-библиотека книг API",
-    "DESCRIPTION": "Учебный REST API для каталога книг, выдач (loans) и отзывов читателей (reviews).",
+    "TITLE": "LitHub API",
+    "DESCRIPTION": "REST API цифровой онлайн-библиотеки LitHub: каталог книг, книжная полка (shelf) и отзывы читателей (reviews).",
     "VERSION": "1.0.0",
-    "SERVE_INCLUDE_schema": False,
+    "SERVE_INCLUDE_SCHEMA": False,
 }

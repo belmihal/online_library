@@ -1,8 +1,12 @@
+"""
+Сериализатор для отзывов (ReviewSerializer).
+"""
 from rest_framework import serializers
 from .models import Review
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """Сериализатор отзыва с проверкой оценки от 1 до 5."""
     username = serializers.CharField(source="user.username", read_only=True)
     book_title = serializers.CharField(source="book.title", read_only=True)
 

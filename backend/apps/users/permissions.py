@@ -1,13 +1,13 @@
 """
-Простые и понятные классы прав доступа (Permissions) для переиспользования во всех приложениях.
+Классы прав доступа (Permissions) для приложений цифровой библиотеки LitHub.
 """
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsAdminRoleOrReadOnly(BasePermission):
     """
-    Чтение (GET, HEAD, OPTIONS) разрешено всем (включая гостей).
-    Создание, изменение и удаление (POST, PUT, PATCH, DELETE) — только пользователям с ролью 'admin'.
+    Чтение (GET, HEAD, OPTIONS) разрешено всем пользователям.
+    Создание, изменение и удаление — только пользователям с ролью 'admin'.
     """
 
     def has_permission(self, request, view):
@@ -21,7 +21,7 @@ class IsAdminRoleOrReadOnly(BasePermission):
 
 
 class IsAdminRole(BasePermission):
-    """Доступ разрешен только администраторам (role == 'admin')."""
+    """Доступ разрешен только администраторам LitHub (role == 'admin')."""
 
     def has_permission(self, request, view):
         return bool(
@@ -33,8 +33,7 @@ class IsAdminRole(BasePermission):
 
 class IsOwnerOrAdmin(BasePermission):
     """
-    Разрешает удаление или изменение объекта только его автору (user) или администратору.
-    Используется для отзывов и выдач.
+    Разрешает изменение или удаление объекта только его владельцу (user) или администратору.
     """
 
     def has_object_permission(self, request, view, obj):

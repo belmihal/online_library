@@ -1,3 +1,4 @@
+"""Маршруты аутентификации (/api/v1/auth/)."""
 from django.urls import path
 from .views import LoginView, LogoutView, MeView, RegisterView
 

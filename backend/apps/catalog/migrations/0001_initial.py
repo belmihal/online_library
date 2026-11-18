@@ -1,3 +1,4 @@
+# Начальная миграция моделей Author, Genre, Book, BookAuthor, BookGenre для LitHub
 import django.db.models.deletion
 from django.db import migrations, models
 
@@ -37,8 +38,6 @@ class Migration(migrations.Migration):
                 ("pages", models.PositiveIntegerField(default=100, verbose_name="Количество страниц")),
                 ("language", models.CharField(default="Русский", max_length=50, verbose_name="Язык")),
                 ("cover_url", models.URLField(blank=True, default="", max_length=500, verbose_name="Ссылка на обложку")),
-                ("total_copies", models.PositiveIntegerField(default=1, verbose_name="Всего экземпляров")),
-                ("available_copies", models.PositiveIntegerField(default=1, verbose_name="Доступно для выдачи")),
                 ("avg_rating", models.DecimalField(decimal_places=2, default=0.0, max_digits=3, verbose_name="Средний рейтинг")),
                 ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="Дата добавления")),
             ],

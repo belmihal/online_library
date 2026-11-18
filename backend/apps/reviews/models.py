@@ -1,3 +1,9 @@
+"""
+Модель отзыва читателя на книгу (таблица reviews_review).
+Правила:
+1. Оценка (rating) — целое число от 1 до 5.
+2. Один пользователь может оставить только один отзыв на конкретную книгу (UniqueConstraint).
+"""
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -6,6 +12,7 @@ from apps.catalog.models import Book
 
 
 class Review(models.Model):
+    """Отзыв и оценка книги от читателя LitHub."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

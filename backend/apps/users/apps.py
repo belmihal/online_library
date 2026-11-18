@@ -5,4 +5,4 @@ class UsersConfig(AppConfig):
     """Конфигурация приложения пользователей (apps.users)."""
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.users"
-    verbose_name = "Пользователи"
+    verbose_name = "Пользователи LitHub"

@@ -1,5 +1,5 @@
 """
-Сериализаторы для отображения профиля, регистрации и входа пользователя.
+Сериализаторы профиля, регистрации и входа пользователей LitHub.
 """
 from django.contrib.auth import authenticate
 from rest_framework import serializers
@@ -7,7 +7,7 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для безопасного возврата данных пользователя (без пароля)."""
+    """Сериализатор для отображения данных профиля пользователя."""
 
     class Meta:
         model = User
@@ -16,10 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор регистрации нового читателя (Форма 2 на фронтенде).
-    Проверяет совпадение паролей password и password_confirm.
-    """
+    """Сериализатор регистрации нового читателя LitHub."""
     password = serializers.CharField(
         write_only=True,
         min_length=4,
@@ -38,7 +35,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "role"]
 
     def validate(self, attrs):
-        """Проверяем совпадение паролей, если передано поле подтверждения."""
+        """Проверка совпадения пароля и его подтверждения."""
         password = attrs.get("password")
         password_confirm = attrs.pop("password_confirm", None)
         if password_confirm is not None and password_confirm != "" and password != password_confirm:
@@ -48,19 +45,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Создаем пользователя с хэшированием пароля через create_user."""
-        user = User.objects.create_user(
+        """Создание пользователя с хэшированием пароля."""
+        return User.objects.create_user(
             username=validated_data["username"],
             email=validated_data["email"],
             password=validated_data["password"],
             role=User.ROLE_READER,
         )
-        return user
 
 
 class LoginSerializer(serializers.Serializer):
-    """Сериализатор для входа по логину (или email) и паролю (Форма 1 на фронтенде)."""
-    username = serializers.CharField(help_text="Имя пользователя (username) или email")
+    """Сериализатор входа по логину (или email) и паролю."""
+    username = serializers.CharField(help_text="Логин (username) или email")
     password = serializers.CharField(write_only=True, help_text="Пароль")
 
     def validate(self, attrs):

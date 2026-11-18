@@ -1,3 +1,8 @@
+"""
+Представления для работы с отзывами LitHub (ReviewViewSet).
+Пересчет среднего рейтинга книги выполняется простой функцией recalculate_book_rating(book)
+при создании, обновлении или удалении отзыва.
+"""
 from django.db.models import Avg
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -10,6 +15,7 @@ from .serializers import ReviewSerializer
 
 
 def recalculate_book_rating(book: Book) -> None:
+    """Пересчитывает средний рейтинг книги по всем отзывам и сохраняет в book.avg_rating."""
     agg = Review.objects.filter(book=book).aggregate(avg=Avg("rating"))
     avg_value = agg["avg"] or 0.0
     book.avg_rating = round(float(avg_value), 2)
@@ -17,6 +23,13 @@ def recalculate_book_rating(book: Book) -> None:
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """
+    Управление отзывами (/api/v1/reviews/):
+    - GET /api/v1/reviews/?book=<id> — отзывы по книге;
+    - GET /api/v1/reviews/?mine=true — отзывы текущего пользователя;
+    - POST /api/v1/reviews/ — оставить отзыв (при дубле возвращает 409 Conflict);
+    - DELETE /api/v1/reviews/{id}/ — удалить свой отзыв (или любой отзыв для роли admin).
+    """
     queryset = Review.objects.select_related("user", "book").all()
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrAdmin]
@@ -38,6 +51,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
+        """Создание отзыва с проверкой уникальности пары (user, book)."""
         data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
         if "book" not in data and "book_id" in data:
             data["book"] = data["book_id"]

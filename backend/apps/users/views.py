@@ -1,5 +1,9 @@
 """
-Представления (Views) для аутентификации и профиля пользователя.
+Представления (Views) аутентификации и профиля пользователя LitHub:
+- POST /api/v1/auth/register/ — регистрация читателя;
+- POST /api/v1/auth/login/    — вход в систему;
+- POST /api/v1/auth/logout/   — выход из системы;
+- GET  /api/v1/auth/me/       — получение профиля текущего пользователя.
 """
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -11,6 +15,7 @@ from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 
 
 class RegisterView(APIView):
+    """Регистрация нового читателя LitHub."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -29,6 +34,7 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
+    """Вход в аккаунт LitHub по логину и паролю."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -47,6 +53,7 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
+    """Выход из системы (удаление токена)."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -58,6 +65,7 @@ class LogoutView(APIView):
 
 
 class MeView(APIView):
+    """Получение данных текущего пользователя."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

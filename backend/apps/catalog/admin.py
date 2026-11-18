@@ -1,3 +1,4 @@
+"""Регистрация моделей каталога LitHub в админ-панели Django."""
 from django.contrib import admin
 from .models import Author, Book, BookAuthor, BookGenre, Genre
 
@@ -26,7 +27,7 @@ class GenreAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "isbn", "published_year", "available_copies", "total_copies", "avg_rating")
+    list_display = ("id", "title", "isbn", "published_year", "pages", "avg_rating")
     list_filter = ("published_year", "language")
     search_fields = ("title", "isbn")
     inlines = [BookAuthorInline, BookGenreInline]

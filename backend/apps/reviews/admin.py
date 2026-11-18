@@ -1,3 +1,4 @@
+"""Регистрация модели Review в админ-панели Django."""
 from django.contrib import admin
 from .models import Review
 

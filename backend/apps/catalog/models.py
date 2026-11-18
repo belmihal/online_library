@@ -1,8 +1,16 @@
+"""
+Модели цифрового каталога книг LitHub (apps.catalog):
+- Author (автор книги)
+- Genre (жанр книги)
+- Book (цифровая книга в каталоге)
+- BookAuthor и BookGenre (явные промежуточные таблицы связей Многие-ко-Многим / M2M)
+"""
 from django.db import models
 from django.utils.text import slugify
 
 
 class Author(models.Model):
+    """Модель автора книги (таблица catalog_author)."""
     first_name = models.CharField(max_length=100, verbose_name="Имя")
     last_name = models.CharField(max_length=100, verbose_name="Фамилия")
     bio = models.TextField(blank=True, default="", verbose_name="Биография")
@@ -23,6 +31,7 @@ class Author(models.Model):
 
 
 class Genre(models.Model):
+    """Модель жанра книги (таблица catalog_genre)."""
     name = models.CharField(max_length=100, unique=True, verbose_name="Название жанра")
     slug = models.SlugField(max_length=120, unique=True, blank=True, verbose_name="Слаг (URL)")
     description = models.TextField(blank=True, default="", verbose_name="Описание жанра")
@@ -34,6 +43,7 @@ class Genre(models.Model):
         ordering = ["name"]
 
     def save(self, *args, **kwargs):
+        """Автоматически формируем slug из названия, если он не был передан."""
         if not self.slug:
             base_slug = slugify(self.name, allow_unicode=True) or "genre"
             slug_candidate = base_slug
@@ -49,6 +59,7 @@ class Genre(models.Model):
 
 
 class Book(models.Model):
+    """Основная модель цифровой книги в каталоге LitHub (таблица catalog_book)."""
     title = models.CharField(max_length=255, verbose_name="Название книги")
     isbn = models.CharField(max_length=20, unique=True, verbose_name="ISBN")
     description = models.TextField(blank=True, default="", verbose_name="Описание")
@@ -58,9 +69,7 @@ class Book(models.Model):
     language = models.CharField(max_length=50, default="Русский", verbose_name="Язык")
     cover_url = models.URLField(max_length=500, blank=True, default="", verbose_name="Ссылка на обложку")
 
-    total_copies = models.PositiveIntegerField(default=1, verbose_name="Всего экземпляров")
-    available_copies = models.PositiveIntegerField(default=1, verbose_name="Доступно для выдачи")
-
+    # Средний рейтинг от 0.00 до 5.00 (пересчитывается во views.py при добавлении/удалении отзыва)
     avg_rating = models.DecimalField(
         max_digits=3,
         decimal_places=2,
@@ -68,6 +77,7 @@ class Book(models.Model):
         verbose_name="Средний рейтинг",
     )
 
+    # Связи Многие-ко-Многим через явные промежуточные таблицы
     authors = models.ManyToManyField(
         Author,
         through="BookAuthor",
@@ -96,6 +106,7 @@ class Book(models.Model):
 
 
 class BookAuthor(models.Model):
+    """Явная промежуточная таблица связи M2M: Книга <-> Автор (catalog_book_authors)."""
     book = models.ForeignKey(Book, on_delete=models.CASCADE, verbose_name="Книга")
     author = models.ForeignKey(Author, on_delete=models.CASCADE, verbose_name="Автор")
 
@@ -112,6 +123,7 @@ class BookAuthor(models.Model):
 
 
 class BookGenre(models.Model):
+    """Явная промежуточная таблица связи M2M: Книга <-> Жанр (catalog_book_genres)."""
     book = models.ForeignKey(Book, on_delete=models.CASCADE, verbose_name="Книга")
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE, verbose_name="Жанр")
 

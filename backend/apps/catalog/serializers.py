@@ -1,8 +1,12 @@
+"""
+Сериализаторы цифрового каталога книг LitHub (Author, Genre, Book).
+"""
 from rest_framework import serializers
 from .models import Author, Book, Genre
 
 
 class AuthorSerializer(serializers.ModelSerializer):
+    """Сериализатор автора книги."""
     full_name = serializers.ReadOnlyField()
 
     class Meta:
@@ -11,6 +15,8 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    """Сериализатор жанра книги."""
+
     class Meta:
         model = Genre
         fields = ["id", "name", "slug", "description"]
@@ -20,6 +26,11 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class BookSerializer(serializers.ModelSerializer):
+    """
+    Универсальный сериализатор цифровой книги LitHub.
+    - При GET-запросах возвращает полные объекты authors и genres + число avg_rating.
+    - При POST/PATCH-запросах принимает списки ID авторов и жанров (author_ids / genre_ids).
+    """
     authors = AuthorSerializer(many=True, read_only=True)
     genres = GenreSerializer(many=True, read_only=True)
 
@@ -28,12 +39,14 @@ class BookSerializer(serializers.ModelSerializer):
         many=True,
         write_only=True,
         required=False,
+        help_text="Список ID авторов книги",
     )
     genre_ids = serializers.PrimaryKeyRelatedField(
         queryset=Genre.objects.all(),
         many=True,
         write_only=True,
         required=False,
+        help_text="Список ID жанров книги",
     )
     avg_rating = serializers.FloatField(read_only=True)
 
@@ -49,8 +62,6 @@ class BookSerializer(serializers.ModelSerializer):
             "pages",
             "language",
             "cover_url",
-            "total_copies",
-            "available_copies",
             "avg_rating",
             "authors",
             "genres",
@@ -61,6 +72,7 @@ class BookSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "avg_rating", "created_at"]
 
     def to_internal_value(self, data):
+        """Поддержка передачи списков ID как в author_ids/genre_ids, так и в authors/genres."""
         if hasattr(data, "copy"):
             mutable_data = data.copy()
         else:
@@ -77,18 +89,6 @@ class BookSerializer(serializers.ModelSerializer):
                 mutable_data["genre_ids"] = raw_genres
 
         return super().to_internal_value(mutable_data)
-
-    def validate(self, attrs):
-        total = attrs.get("total_copies", getattr(self.instance, "total_copies", 1))
-        if "available_copies" not in attrs and self.instance is None:
-            attrs["available_copies"] = total
-        available = attrs.get("available_copies", getattr(self.instance, "available_copies", total))
-
-        if available > total:
-            raise serializers.ValidationError(
-                {"available_copies": "Доступных копий не может быть больше общего количества (total_copies)."}
-            )
-        return attrs
 
     def create(self, validated_data):
         author_ids = validated_data.pop("author_ids", [])

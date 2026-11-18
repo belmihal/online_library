@@ -1,3 +1,4 @@
+# Начальная миграция модели User для цифровой библиотеки LitHub
 import django.contrib.auth.models
 import django.contrib.auth.validators
 import django.utils.timezone

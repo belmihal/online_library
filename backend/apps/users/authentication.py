@@ -1,7 +1,6 @@
 """
-Кастомный класс токен-аутентификации на базе стандартного TokenAuthentication из DRF.
-Позволяет фронтенду передавать заголовок как в формате 'Authorization: Token <ключ>',
-так и в формате 'Authorization: Bearer <ключ>', чтобы избежать любых ошибок на клиенте.
+Класс токен-аутентификации на базе стандартного TokenAuthentication из DRF.
+Поддерживает заголовки 'Authorization: Token <ключ>' и 'Authorization: Bearer <ключ>'.
 """
 from rest_framework.authentication import TokenAuthentication, get_authorization_header
 

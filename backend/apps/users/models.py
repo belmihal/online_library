@@ -1,15 +1,15 @@
 """
-Модель пользователя системы «Онлайн-библиотека книг».
-Наследуется от стандартного AbstractUser и добавляет поле роли (role):
-- 'reader' (читатель) — может брать книги и оставлять отзывы;
-- 'admin' (администратор) — может управлять книгами, авторами, жанрами и загружать CSV.
+Модель пользователя цифровой онлайн-библиотеки «LitHub».
+Наследуется от AbstractUser и добавляет поле роли (role):
+- 'reader' (читатель) — может добавлять книги на свою полку и оставлять отзывы;
+- 'admin' (администратор) — управляет каталогом книг, авторами, жанрами и импортом CSV.
 """
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
 class User(AbstractUser):
-    """Кастомная модель пользователя с разделением ролей (reader / admin)."""
+    """Кастомная модель пользователя LitHub с разделением ролей (reader / admin)."""
 
     ROLE_READER = "reader"
     ROLE_ADMIN = "admin"
@@ -38,14 +38,14 @@ class User(AbstractUser):
         ordering = ["id"]
 
     def save(self, *args, **kwargs):
-        """Если создается суперпользователь через createsuperuser, автоматически ставим роль admin."""
+        """При создании суперпользователя автоматически назначаем роль admin."""
         if self.is_superuser:
             self.role = self.ROLE_ADMIN
         super().save(*args, **kwargs)
 
     @property
     def is_admin_role(self) -> bool:
-        """Удобная проверка: является ли пользователь администратором библиотеки."""
+        """Проверка: является ли пользователь администратором LitHub."""
         return self.role == self.ROLE_ADMIN or self.is_superuser or self.is_staff
 
     def __str__(self) -> str:

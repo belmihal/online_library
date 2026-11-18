@@ -1,12 +1,20 @@
+"""
+Представления (ViewSets) для работы с авторами, жанрами и цифровыми книгами LitHub:
+- AuthorViewSet (/api/v1/authors/)
+- GenreViewSet  (/api/v1/genres/)
+- BookViewSet   (/api/v1/books/ + POST /api/v1/books/import-csv/)
+"""
 import csv
 import io
-from django.db.models import ProtectedError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
+from apps.reviews.models import Review
+from apps.reviews.serializers import ReviewSerializer
+from apps.reviews.views import recalculate_book_rating
 from apps.users.permissions import IsAdminRole, IsAdminRoleOrReadOnly
 from .filters import BookFilter
 from .models import Author, Book, Genre
@@ -14,6 +22,7 @@ from .serializers import AuthorSerializer, BookSerializer, GenreSerializer
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
+    """CRUD для авторов книг (чтение всем, изменение только роли 'admin')."""
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
     permission_classes = [IsAdminRoleOrReadOnly]
@@ -22,6 +31,7 @@ class AuthorViewSet(viewsets.ModelViewSet):
 
 
 class GenreViewSet(viewsets.ModelViewSet):
+    """CRUD для жанров книг (чтение всем, изменение только роли 'admin')."""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = [IsAdminRoleOrReadOnly]
@@ -30,24 +40,19 @@ class GenreViewSet(viewsets.ModelViewSet):
 
 
 class BookViewSet(viewsets.ModelViewSet):
+    """
+    CRUD для каталога цифровых книг LitHub:
+    - Поиск (?search=): по названию, ISBN, описанию и фамилии/имени автора.
+    - Фильтрация: ?genre=, ?author=, ?published_year=.
+    - Сортировка (?ordering=): по avg_rating, published_year, title, id.
+    """
     queryset = Book.objects.prefetch_related("authors", "genres").distinct()
     serializer_class = BookSerializer
     permission_classes = [IsAdminRoleOrReadOnly]
     filterset_class = BookFilter
     search_fields = ["title", "isbn", "description", "authors__last_name", "authors__first_name"]
-    ordering_fields = ["id", "title", "published_year", "avg_rating", "available_copies", "created_at"]
+    ordering_fields = ["id", "title", "published_year", "avg_rating", "created_at"]
     ordering = ["-id"]
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        try:
-            self.perform_destroy(instance)
-        except ProtectedError:
-            return Response(
-                {"detail": "Нельзя удалить книгу, так как по ней есть история выдач читателям."},
-                status=status.HTTP_409_CONFLICT,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
@@ -57,6 +62,10 @@ class BookViewSet(viewsets.ModelViewSet):
         parser_classes=[MultiPartParser, FormParser, JSONParser],
     )
     def import_csv(self, request):
+        """
+        Массовая загрузка книг из CSV-файла (POST /api/v1/books/import-csv/).
+        Поддерживает колонки: title, isbn, description, published_year, publisher, pages, language, cover_url.
+        """
         uploaded_file = request.FILES.get("file")
         if not uploaded_file:
             return Response(
@@ -94,9 +103,8 @@ class BookViewSet(viewsets.ModelViewSet):
             try:
                 published_year = int(row.get("published_year") or 2024)
                 pages = int(row.get("pages") or 100)
-                total_copies = max(1, int(row.get("total_copies") or 1))
             except ValueError:
-                errors.append(f"Строка {row_num}: некорректное числовое значение года, страниц или копий.")
+                errors.append(f"Строка {row_num}: некорректное числовое значение года или страниц.")
                 continue
 
             defaults = {
@@ -107,8 +115,6 @@ class BookViewSet(viewsets.ModelViewSet):
                 "pages": pages,
                 "language": (row.get("language") or "Русский").strip(),
                 "cover_url": (row.get("cover_url") or "").strip(),
-                "total_copies": total_copies,
-                "available_copies": total_copies,
             }
 
             _, created = Book.objects.update_or_create(isbn=isbn, defaults=defaults)
@@ -134,13 +140,12 @@ class BookViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticatedOrReadOnly],
     )
     def book_reviews(self, request, pk=None):
+        """
+        Вложенный эндпоинт /api/v1/books/{id}/reviews/:
+        - GET: список отзывов на конкретную книгу;
+        - POST: добавляет отзыв на эту книгу и пересчитывает ее средний рейтинг.
+        """
         book = self.get_object()
-        try:
-            from apps.reviews.models import Review
-            from apps.reviews.serializers import ReviewSerializer
-            from apps.reviews.views import recalculate_book_rating
-        except ImportError:
-            return Response([], status=status.HTTP_200_OK)
 
         if request.method == "GET":
             reviews = Review.objects.filter(book=book).select_related("user").order_by("-created_at")
