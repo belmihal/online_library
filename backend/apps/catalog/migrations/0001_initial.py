@@ -1,4 +1,4 @@
-# Начальная миграция моделей Author, Genre, Book, BookAuthor, BookGenre для LitHub
+# Начальная миграция моделей Author, Genre, Book (с sample_text), BookAuthor, BookGenre для LitHub
 import django.db.models.deletion
 from django.db import migrations, models
 
@@ -33,6 +33,7 @@ class Migration(migrations.Migration):
                 ("title", models.CharField(max_length=255, verbose_name="Название книги")),
                 ("isbn", models.CharField(max_length=20, unique=True, verbose_name="ISBN")),
                 ("description", models.TextField(blank=True, default="", verbose_name="Описание")),
+                ("sample_text", models.TextField(blank=True, default="", verbose_name="Ознакомительный фрагмент")),
                 ("published_year", models.PositiveIntegerField(default=2024, verbose_name="Год издания")),
                 ("publisher", models.CharField(blank=True, default="", max_length=255, verbose_name="Издательство")),
                 ("pages", models.PositiveIntegerField(default=100, verbose_name="Количество страниц")),

@@ -88,7 +88,7 @@ def sample_author(db):
 
 @pytest.fixture
 def sample_genre(db):
-    """Создает тестовый жанр."""
+    """Создает тестовую категорию."""
     return Genre.objects.create(
         name="Классика",
         slug="classic",
@@ -98,11 +98,12 @@ def sample_genre(db):
 
 @pytest.fixture
 def sample_book(db, sample_author, sample_genre):
-    """Создает тестовую цифровую книгу с привязкой к автору и жанру."""
+    """Создает тестовую цифровую книгу с sample_text и связями M2M."""
     book = Book.objects.create(
         title="Мастер и Маргарита",
         isbn="978-5-17-090630-1",
         description="Философский и мистический роман.",
+        sample_text="Глава 1. Вечер на Патриарших прудах\n\nМайский закат окрасил московские крыши.",
         published_year=1967,
         publisher="АСТ",
         pages=480,

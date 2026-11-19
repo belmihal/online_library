@@ -31,7 +31,7 @@ class AuthorViewSet(viewsets.ModelViewSet):
 
 
 class GenreViewSet(viewsets.ModelViewSet):
-    """CRUD для жанров книг (чтение всем, изменение только роли 'admin')."""
+    """CRUD для жанров / категорий книг (чтение всем, изменение только роли 'admin')."""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = [IsAdminRoleOrReadOnly]
@@ -64,7 +64,8 @@ class BookViewSet(viewsets.ModelViewSet):
     def import_csv(self, request):
         """
         Массовая загрузка книг из CSV-файла (POST /api/v1/books/import-csv/).
-        Поддерживает колонки: title, isbn, description, published_year, publisher, pages, language, cover_url.
+        Поддерживает колонки:
+        title, isbn, description, sample_text, published_year, publisher, pages, language, cover_url.
         """
         uploaded_file = request.FILES.get("file")
         if not uploaded_file:
@@ -110,6 +111,7 @@ class BookViewSet(viewsets.ModelViewSet):
             defaults = {
                 "title": title,
                 "description": (row.get("description") or "").strip(),
+                "sample_text": (row.get("sample_text") or "").strip(),
                 "published_year": published_year,
                 "publisher": (row.get("publisher") or "").strip(),
                 "pages": pages,

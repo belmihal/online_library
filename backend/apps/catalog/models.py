@@ -1,8 +1,8 @@
 """
 Модели цифрового каталога книг LitHub (apps.catalog):
 - Author (автор книги)
-- Genre (жанр книги)
-- Book (цифровая книга в каталоге)
+- Genre (жанр / категория книги)
+- Book (цифровая книга в каталоге с ознакомительным фрагментом sample_text)
 - BookAuthor и BookGenre (явные промежуточные таблицы связей Многие-ко-Многим / M2M)
 """
 from django.db import models
@@ -31,7 +31,7 @@ class Author(models.Model):
 
 
 class Genre(models.Model):
-    """Модель жанра книги (таблица catalog_genre)."""
+    """Модель жанра / категории книги (таблица catalog_genre)."""
     name = models.CharField(max_length=100, unique=True, verbose_name="Название жанра")
     slug = models.SlugField(max_length=120, unique=True, blank=True, verbose_name="Слаг (URL)")
     description = models.TextField(blank=True, default="", verbose_name="Описание жанра")
@@ -63,6 +63,7 @@ class Book(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название книги")
     isbn = models.CharField(max_length=20, unique=True, verbose_name="ISBN")
     description = models.TextField(blank=True, default="", verbose_name="Описание")
+    sample_text = models.TextField(blank=True, default="", verbose_name="Ознакомительный фрагмент")
     published_year = models.PositiveIntegerField(default=2024, verbose_name="Год издания")
     publisher = models.CharField(max_length=255, blank=True, default="", verbose_name="Издательство")
     pages = models.PositiveIntegerField(default=100, verbose_name="Количество страниц")

@@ -15,7 +15,7 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 
 class GenreSerializer(serializers.ModelSerializer):
-    """Сериализатор жанра книги."""
+    """Сериализатор жанра / категории книги."""
 
     class Meta:
         model = Genre
@@ -28,7 +28,8 @@ class GenreSerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     """
     Универсальный сериализатор цифровой книги LitHub.
-    - При GET-запросах возвращает полные объекты authors и genres + число avg_rating.
+    - При GET-запросах возвращает полные объекты authors и genres, avg_rating,
+      количество отзывов reviews_count и ознакомительный фрагмент sample_text.
     - При POST/PATCH-запросах принимает списки ID авторов и жанров (author_ids / genre_ids).
     """
     authors = AuthorSerializer(many=True, read_only=True)
@@ -49,6 +50,7 @@ class BookSerializer(serializers.ModelSerializer):
         help_text="Список ID жанров книги",
     )
     avg_rating = serializers.FloatField(read_only=True)
+    reviews_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
@@ -57,19 +59,25 @@ class BookSerializer(serializers.ModelSerializer):
             "title",
             "isbn",
             "description",
+            "sample_text",
             "published_year",
             "publisher",
             "pages",
             "language",
             "cover_url",
             "avg_rating",
+            "reviews_count",
             "authors",
             "genres",
             "author_ids",
             "genre_ids",
             "created_at",
         ]
-        read_only_fields = ["id", "avg_rating", "created_at"]
+        read_only_fields = ["id", "avg_rating", "reviews_count", "created_at"]
+
+    def get_reviews_count(self, obj) -> int:
+        """Возвращает количество отзывов, оставленных к данной книге."""
+        return obj.reviews.count()
 
     def to_internal_value(self, data):
         """Поддержка передачи списков ID как в author_ids/genre_ids, так и в authors/genres."""
