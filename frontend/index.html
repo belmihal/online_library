@@ -222,9 +222,9 @@
               </div>
 
               {showcasesLoading ? (
-                <p style={ color: 'var(--muted-color)' }>Загрузка витрины...</p>
+                <p style={{ color: 'var(--muted-color)' }}>Загрузка витрины...</p>
               ) : bestsellers.length === 0 ? (
-                <p style={ color: 'var(--muted-color)' }>Книги пока не добавлены.</p>
+                <p style={{ color: 'var(--muted-color)' }}>Книги пока не добавлены.</p>
               ) : (
                 <div className="showcase-grid">
                   {bestsellers.map((book) => (
@@ -244,9 +244,9 @@
               </div>
 
               {showcasesLoading ? (
-                <p style={ color: 'var(--muted-color)' }>Загрузка витрины...</p>
+                <p style={{ color: 'var(--muted-color)' }}>Загрузка витрины...</p>
               ) : readersChoice.length === 0 ? (
-                <p style={ color: 'var(--muted-color)' }>Книги пока не добавлены.</p>
+                <p style={{ color: 'var(--muted-color)' }}>Книги пока не добавлены.</p>
               ) : (
                 <div className="showcase-grid">
                   {readersChoice.map((book) => (
@@ -260,10 +260,10 @@
             <section>
               <div className="toolbar-row">
                 <div>
-                  <h2 className="section-title" style={ marginBottom: '4px' }>
+                  <h2 className="section-title" style={{ marginBottom: '4px' }}>
                     Все книги библиотеки
                   </h2>
-                  <span style={ color: 'var(--muted-color)', fontSize: '0.92rem' }>
+                  <span style={{ color: 'var(--muted-color)', fontSize: '0.92rem' }}>
                     Всего цифровых книг: <strong>{totalCount}</strong>
                   </span>
                 </div>
