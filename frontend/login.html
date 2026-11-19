@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LitHub — Вход в систему</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header id="app-header"></header>
+
+    <main class="container">
+      <div class="form-box card">
+        <h1 class="page-title">Вход в LitHub</h1>
+
+        <div id="login-error" class="alert alert-error" style="display: none;"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username">Логин или Email</label>
+            <input
+              id="login-username"
+              type="text"
+              class="input"
+              placeholder="Например: reader или admin"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Пароль</label>
+            <input
+              id="login-password"
+              type="password"
+              class="input"
+              placeholder="Введите пароль"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="login-submit-btn"
+            class="btn btn-primary"
+            style="width: 100%; margin-top: 8px;"
+          >
+            Войти
+          </button>
+        </form>
+
+        <div
+          style="
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.88rem;
+            color: var(--muted-color);
+          "
+        >
+          <p><strong>Демо-аккаунты LitHub для проверки:</strong></p>
+          <p>• Читатель: <code>reader</code> / <code>reader123</code></p>
+          <p>• Администратор: <code>admin</code> / <code>admin123</code></p>
+          <p style="margin-top: 10px;">
+            Нет аккаунта? <a href="register.html">Зарегистрироваться</a>
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <footer id="app-footer"></footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      // Обычный JavaScript без сборщиков: отправляем POST /api/v1/auth/login/
+      document.getElementById('login-form').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const errorBox = document.getElementById('login-error');
+        const submitBtn = document.getElementById('login-submit-btn');
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        errorBox.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Входим...';
+
+        try {
+          const data = await apiFetch('/auth/login/', {
+            method: 'POST',
+            body: JSON.stringify({ username: username, password: password }),
+          });
+
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location.href = 'index.html';
+        } catch (err) {
+          errorBox.textContent = err.message || 'Не удалось выполнить вход. Проверьте логин и пароль.';
+          errorBox.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Войти';
+        }
+      });
+    </script>
+  </body>
+</html>

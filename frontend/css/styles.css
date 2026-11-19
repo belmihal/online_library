@@ -1,10 +1,10 @@
 /* ==========================================================================
-   Единый файл стилей цифровой онлайн-библиотеки «LitHub» (src/styles.css)
+   Единый файл стилей цифровой онлайн-библиотеки «LitHub» (css/styles.css)
    Поддерживает:
-   1. Светлую тему (:root) в тёплой кремово-оранжевой гамме
-   2. Темную тему (body[data-theme="dark"]) в шоколадно-янтарной гамме
-   3. Переключение вида каталога: «Плитка» (.books-grid) и «Список» (.books-list)
-   4. Встроенную читалку (.reader-box) и адаптивность (@media max-width: 768px)
+   1. Светло-оранжевую дневную тему (:root) и шоколадно-янтарную ночную тему (body[data-theme="dark"])
+   2. Фирменный логотип «Lit [hub]» (чёрная плашка, белое Lit, чёрное hub на #ff9000)
+   3. Вертикальные книжные обложки с эффектом выпуклого корешка слева
+   4. Режимы «Плитка» (.books-grid) и «Список» (.books-list), встроенную читалку и адаптивность
    ========================================================================== */
 
 :root {
@@ -22,7 +22,6 @@
   --shadow: 0 4px 12px rgba(154, 52, 18, 0.08);
 }
 
-/* Переопределение переменных для темной темы */
 body[data-theme="dark"] {
   --bg-color: #180d07;
   --surface-color: #27150c;
@@ -48,6 +47,9 @@ body {
   color: var(--text-color);
   line-height: 1.5;
   transition: background-color 0.2s ease, color 0.2s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
@@ -59,14 +61,18 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Контейнер страницы */
+/* Основной контейнер растягивается, прижимая подвал к нижней границе экрана */
 .container {
   max-width: 1180px;
+  width: 100%;
   margin: 0 auto;
   padding: 24px 16px 48px;
+  flex: 1;
 }
 
-/* Шапка сайта (Header) */
+/* ==========================================================================
+   Шапка сайта и фирменный логотип «Lit [hub]»
+   ========================================================================== */
 .navbar {
   background-color: var(--surface-color);
   border-bottom: 1px solid var(--border-color);
@@ -79,7 +85,7 @@ a:hover {
 .navbar-inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 14px 16px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -88,22 +94,40 @@ a:hover {
 }
 
 .navbar-brand {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--primary-color);
-  display: flex;
+  background: #0f0f0f;
+  padding: 6px 10px;
+  border-radius: 10px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
+  font-family: Arial, sans-serif;
+  font-weight: 800;
+  font-size: 1.45rem;
+  letter-spacing: -0.5px;
+  line-height: 1;
 }
 
 .navbar-brand:hover {
   text-decoration: none;
+  opacity: 0.94;
+}
+
+.brand-lit {
+  color: #ffffff;
+}
+
+.brand-hub {
+  background: #ff9000;
+  color: #000000;
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-left: 2px;
 }
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -119,7 +143,9 @@ a:hover {
   text-decoration: none;
 }
 
-/* Кнопки */
+/* ==========================================================================
+   Кнопки, карточки, формы и таблицы
+   ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -166,12 +192,6 @@ a:hover {
   color: #ffffff;
 }
 
-.btn-success {
-  background-color: var(--success-color);
-  color: #ffffff;
-}
-
-/* Карточки и секции */
 .card {
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
@@ -193,7 +213,6 @@ a:hover {
   font-weight: 600;
 }
 
-/* Формы и поля ввода */
 .form-box {
   max-width: 460px;
   margin: 28px auto;
@@ -227,7 +246,9 @@ a:hover {
   resize: vertical;
 }
 
-/* Панель фильтров на главной странице каталога */
+/* ==========================================================================
+   Панель фильтров и сетка каталога книг
+   ========================================================================== */
 .filters-bar {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr auto;
@@ -250,7 +271,6 @@ a:hover {
   gap: 8px;
 }
 
-/* Сетка карточек книг: режим «Плитка» (Grid) и режим «Список» (List) */
 .books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -263,7 +283,6 @@ a:hover {
   gap: 14px;
 }
 
-/* Карточка одной книги (BookCard) */
 .book-card {
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
@@ -276,6 +295,15 @@ a:hover {
   gap: 12px;
 }
 
+.book-card-cover-link {
+  display: block;
+  text-decoration: none;
+}
+
+.book-card-cover-link:hover {
+  text-decoration: none;
+}
+
 .book-card-list {
   flex-direction: row;
   align-items: center;
@@ -283,26 +311,132 @@ a:hover {
   gap: 20px;
 }
 
-.book-cover {
+/* ==========================================================================
+   Вертикальные книжные обложки с эффектом корешка слева
+   ========================================================================== */
+.book-cover-wrapper {
   width: 100%;
-  height: 170px;
-  object-fit: cover;
+  height: 230px;
   border-radius: 8px;
-  background-color: var(--badge-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--badge-text);
-  font-weight: 700;
-  font-size: 1rem;
-  text-align: center;
-  padding: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
-.book-card-list .book-cover {
-  width: 120px;
-  height: 140px;
+.book-card-list .book-cover-wrapper {
+  width: 140px;
+  height: 200px;
   flex-shrink: 0;
+}
+
+.book-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.book-cover-styled {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  padding: 12px 12px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.book-cover-spine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.book-cover-frame {
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 5px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.book-cover-genre {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+}
+
+.book-cover-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.book-cover-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  padding-top: 6px;
+}
+
+.book-cover-author {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-cover-year {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 2px;
+}
+
+/* Макет детальной страницы книги (обложка слева от описания) */
+.book-detail-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.book-detail-cover {
+  width: 210px;
+  flex-shrink: 0;
+}
+
+.book-detail-cover .book-cover-wrapper {
+  height: 300px;
+}
+
+.book-detail-cover .book-cover-title {
+  font-size: 1.25rem;
+  -webkit-line-clamp: 5;
+}
+
+.book-detail-info {
+  flex: 1;
 }
 
 .book-title {
@@ -334,7 +468,6 @@ a:hover {
   color: var(--badge-text);
 }
 
-/* Бейдж цифрового издания LitHub */
 .badge-digital {
   background-color: rgba(234, 88, 12, 0.14);
   color: var(--primary-color);
@@ -366,7 +499,7 @@ a:hover {
   white-space: pre-line;
 }
 
-/* Уведомления об ошибках и успехе */
+/* Уведомления */
 .alert {
   padding: 12px 16px;
   border-radius: 8px;
@@ -386,7 +519,7 @@ a:hover {
   border: 1px solid var(--success-color);
 }
 
-/* Таблицы (для личной полки и админ-панели) */
+/* Таблицы */
 .table-wrapper {
   overflow-x: auto;
 }
@@ -418,7 +551,38 @@ a:hover {
   margin-top: 24px;
 }
 
-/* Адаптивность для телефонов и узких экранов */
+/* ==========================================================================
+   Минималистичный подвал ТОЛЬКО с контактной информацией администраторов
+   ========================================================================== */
+.site-footer {
+  background-color: var(--surface-color);
+  border-top: 1px solid var(--border-color);
+  padding: 20px 16px;
+  margin-top: auto;
+}
+
+.site-footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.footer-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.footer-contacts {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  font-size: 0.9rem;
+  color: var(--muted-color);
+}
+
+/* Адаптивность для мобильных экранов */
 @media (max-width: 768px) {
   .filters-bar {
     grid-template-columns: 1fr;
@@ -429,7 +593,17 @@ a:hover {
     align-items: flex-start;
   }
 
-  .book-card-list .book-cover {
+  .book-card-list .book-cover-wrapper {
     width: 100%;
+    height: 230px;
+  }
+
+  .book-detail-layout {
+    flex-direction: column;
+  }
+
+  .book-detail-cover {
+    width: 100%;
+    max-width: 240px;
   }
 }

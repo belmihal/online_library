@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LitHub — Регистрация читателя</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header id="app-header"></header>
+
+    <main class="container">
+      <div class="form-box card">
+        <h1 class="page-title">Регистрация в LitHub</h1>
+
+        <div id="register-error" class="alert alert-error" style="display: none;"></div>
+
+        <form id="register-form">
+          <div class="form-group">
+            <label for="reg-username">Имя пользователя (логин)</label>
+            <input
+              id="reg-username"
+              type="text"
+              class="input"
+              placeholder="Например: ivan_petrov"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="reg-email">Электронная почта (Email)</label>
+            <input
+              id="reg-email"
+              type="email"
+              class="input"
+              placeholder="student@lithub.local"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="reg-password">Пароль (минимум 4 символа)</label>
+            <input
+              id="reg-password"
+              type="password"
+              class="input"
+              placeholder="Введите пароль"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="reg-password-confirm">Повторите пароль</label>
+            <input
+              id="reg-password-confirm"
+              type="password"
+              class="input"
+              placeholder="Повторите пароль еще раз"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="reg-submit-btn"
+            class="btn btn-primary"
+            style="width: 100%; margin-top: 8px;"
+          >
+            Зарегистрироваться
+          </button>
+        </form>
+
+        <p style="margin-top: 16px; font-size: 0.9rem; color: var(--muted-color);">
+          Уже есть аккаунт? <a href="login.html">Войти в LitHub</a>
+        </p>
+      </div>
+    </main>
+
+    <footer id="app-footer"></footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      // Обычный JavaScript без сборщиков: клиентская проверка паролей + POST /api/v1/auth/register/
+      document.getElementById('register-form').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const errorBox = document.getElementById('register-error');
+        const submitBtn = document.getElementById('reg-submit-btn');
+
+        const username = document.getElementById('reg-username').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const passwordConfirm = document.getElementById('reg-password-confirm').value;
+
+        errorBox.style.display = 'none';
+
+        if (password.length < 4) {
+          errorBox.textContent = 'Пароль должен содержать минимум 4 символа.';
+          errorBox.style.display = 'block';
+          return;
+        }
+
+        if (password !== passwordConfirm) {
+          errorBox.textContent = 'Пароли не совпадают! Проверьте правильность ввода.';
+          errorBox.style.display = 'block';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Регистрируем...';
+
+        try {
+          const data = await apiFetch('/auth/register/', {
+            method: 'POST',
+            body: JSON.stringify({
+              username: username,
+              email: email,
+              password: password,
+              password_confirm: passwordConfirm,
+            }),
+          });
+
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location.href = 'index.html';
+        } catch (err) {
+          errorBox.textContent = err.message || 'Ошибка при регистрации пользователя.';
+          errorBox.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Зарегистрироваться';
+        }
+      });
+    </script>
+  </body>
+</html>
