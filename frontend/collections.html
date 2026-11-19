@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LitHub — Тематические подборки книг</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <header id="app-header"></header>
+
+    <main class="container">
+      <div id="collections-root"></div>
+    </main>
+
+    <footer id="app-footer"></footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Компонент вертикальной книжной обложки с корешком
+      function BookCover({ book }) {
+        const [imgError, setImgError] = useState(false);
+        const hasValidImage = Boolean(book.cover_url && book.cover_url.trim() && !imgError);
+
+        if (hasValidImage) {
+          return (
+            <div className="book-cover-wrapper">
+              <img
+                src={book.cover_url}
+                alt={book.title}
+                className="book-cover-img"
+                onError={() => setImgError(true)}
+              />
+            </div>
+          );
+        }
+
+        const paletteIndex = Math.abs(Number(book.id || 0)) % COVER_PALETTES.length;
+        const primaryGenre =
+          book.genres && book.genres.length > 0 ? book.genres[0].name : 'Цифровое издание';
+        const authorLine = formatBookAuthors(book);
+
+        return (
+          <div className="book-cover-wrapper">
+            <div className="book-cover-styled" style={{ background: COVER_PALETTES[paletteIndex] }}>
+              <div className="book-cover-spine" />
+              <div className="book-cover-frame">
+                <div className="book-cover-genre">{primaryGenre}</div>
+                <div className="book-cover-title">{book.title}</div>
+                <div className="book-cover-footer">
+                  <div className="book-cover-author">{authorLine}</div>
+                  {book.published_year && (
+                    <div className="book-cover-year">{book.published_year} г.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Компонент карточки книги (режимы 'grid' и 'list')
+      function BookCard({ book, viewMode = 'grid', compact = false }) {
+        const authorsText = formatBookAuthors(book);
+        const bookHref = 'book.html?id=' + book.id;
+        const reviewsCount = Number(book.reviews_count || 0);
+
+        return (
+          <div className={'book-card ' + (viewMode === 'list' ? 'book-card-list' : '')}>
+            <a href={bookHref} className="book-card-cover-link">
+              <BookCover book={book} />
+            </a>
+
+            <div style={{ flex: 1 }}>
+              <div className="book-title">
+                <a href={bookHref}>{book.title}</a>
+              </div>
+
+              <div className="book-meta">
+                <strong>Автор:</strong> {authorsText} • <strong>Год:</strong> {book.published_year}
+              </div>
+
+              <div className="badges-row">
+                {book.genres &&
+                  book.genres.map((genre) => (
+                    <a
+                      key={genre.id}
+                      href={'search.html?genre=' + encodeURIComponent(genre.slug || genre.id)}
+                      className="badge badge-link"
+                    >
+                      {genre.name}
+                    </a>
+                  ))}
+              </div>
+
+              {!compact && book.description && (
+                <p style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
+                  {book.description.length > 120
+                    ? book.description.slice(0, 120) + '...'
+                    : book.description}
+                </p>
+              )}
+
+              <div className="badges-row" style={{ alignItems: 'center' }}>
+                <span className="badge">
+                  ⭐ {Number(book.avg_rating || 0).toFixed(1)} ({reviewsCount} отз.)
+                </span>
+                <span className="badge badge-digital">
+                  📱 {book.pages} стр.
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <a href={bookHref} className="btn btn-primary">
+                Открыть книгу
+              </a>
+            </div>
+          </div>
+        );
+      }
+
+
+      // Проверяет, принадлежит ли книга хотя бы одному из указанных slug жанров
+      function hasAnyGenreSlug(book, slugs) {
+        if (!book.genres || !Array.isArray(book.genres)) return false;
+        return book.genres.some((g) => slugs.includes(String(g.slug || '').toLowerCase()));
+      }
+
+      function CollectionsApp() {
+        const [books, setBooks] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState('');
+
+        useEffect(() => {
+          setLoading(true);
+          apiFetch('/books/?page_size=100')
+            .then((data) => {
+              const list = Array.isArray(data) ? data : data.results || [];
+              setBooks(list);
+            })
+            .catch((err) => {
+              setError(err.message || 'Не удалось загрузить подборки книг.');
+            })
+            .finally(() => {
+              setLoading(false);
+            });
+        }, []);
+
+        // Формируем 6 тематических подборок на основе загруженного каталога
+        const collections = [
+          {
+            id: 'bestsellers',
+            title: '🏆 Бестселлеры LitHub',
+            description: 'Книги с самым высоким рейтингом читателей (от 4.5 и выше).',
+            books: [...books]
+              .filter((b) => Number(b.avg_rating || 0) >= 4.5)
+              .sort((a, b) => Number(b.avg_rating || 0) - Number(a.avg_rating || 0))
+              .slice(0, 6),
+            moreUrl: 'search.html',
+            moreLabel: 'Искать по рейтингу →',
+          },
+          {
+            id: 'quick-read',
+            title: '⚡ Прочитать за вечер',
+            description: 'Компактные и увлекательные произведения объёмом до 250 страниц.',
+            books: [...books]
+              .filter((b) => Number(b.pages || 0) > 0 && Number(b.pages || 0) <= 250)
+              .sort((a, b) => Number(a.pages || 0) - Number(b.pages || 0))
+              .slice(0, 6),
+            moreUrl: null,
+            moreLabel: null,
+          },
+          {
+            id: 'most-discussed',
+            title: '💬 Самые обсуждаемые',
+            description: 'Книги, которые собрали больше всего отзывов и живых дискуссий.',
+            books: [...books]
+              .sort((a, b) => Number(b.reviews_count || 0) - Number(a.reviews_count || 0))
+              .slice(0, 6),
+            moreUrl: null,
+            moreLabel: null,
+          },
+          {
+            id: 'dystopia-scifi',
+            title: '👁️ Антиутопии и фантастика',
+            description: 'Миры будущего, альтернативная реальность и классика научной фантастики.',
+            books: books
+              .filter((b) => hasAnyGenreSlug(b, ['dystopia', 'scifi', 'sci-fi']))
+              .slice(0, 6),
+            moreUrl: 'search.html?genre=dystopia',
+            moreLabel: 'Показать всю категорию →',
+          },
+          {
+            id: 'self-dev',
+            title: '🚀 Саморазвитие и психология',
+            description: 'Практические книги о мышлении, полезных привычках и личной эффективности.',
+            books: books
+              .filter((b) => hasAnyGenreSlug(b, ['self-development', 'psychology']))
+              .slice(0, 6),
+            moreUrl: 'search.html?genre=self-development',
+            moreLabel: 'Показать всю категорию →',
+          },
+          {
+            id: 'children',
+            title: '👶 Для детей и семейного чтения',
+            description: 'Добрые сказки, повести и приключения для читателей всех возрастов.',
+            books: books
+              .filter((b) => hasAnyGenreSlug(b, ['children']))
+              .slice(0, 6),
+            moreUrl: 'search.html?genre=children',
+            moreLabel: 'Показать всю категорию →',
+          },
+        ];
+
+        return (
+          <div>
+            <h1 className="page-title">Подборки книг LitHub</h1>
+
+            {/* Быстрая навигация по якорям */}
+            <nav className="anchor-nav" aria-label="Быстрый переход к подборкам">
+              {collections.map((col) => (
+                <a key={col.id} href={'#' + col.id} className="anchor-pill">
+                  {col.title}
+                </a>
+              ))}
+            </nav>
+
+            {error && <div className="alert alert-error">{error}</div>}
+
+            {loading ? (
+              <div className="card">Формируем тематические подборки...</div>
+            ) : (
+              collections.map((col) => (
+                <section key={col.id} id={col.id} className="showcase-section collection-block">
+                  <div className="section-header-row">
+                    <h2 className="section-title">{col.title}</h2>
+                    {col.moreUrl && (
+                      <a href={col.moreUrl} className="btn btn-outline">
+                        {col.moreLabel}
+                      </a>
+                    )}
+                  </div>
+
+                  <p className="section-subtitle">{col.description}</p>
+
+                  {col.books.length === 0 ? (
+                    <p style={ color: 'var(--muted-color)' }>
+                      В этой подборке пока нет подходящих книг.
+                    </p>
+                  ) : (
+                    <div className="books-grid">
+                      {col.books.map((book) => (
+                        <BookCard key={book.id} book={book} viewMode="grid" compact={true} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ))
+            )}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('collections-root')).render(<CollectionsApp />);
+    </script>
+  </body>
+</html>

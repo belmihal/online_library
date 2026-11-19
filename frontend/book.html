@@ -24,17 +24,7 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
 
-      const COVER_PALETTES = [
-        'linear-gradient(135deg, #431407 0%, #9a3412 55%, #ea580c 100%)',
-        'linear-gradient(135deg, #1e1b4b 0%, #3730a3 60%, #4f46e5 100%)',
-        'linear-gradient(135deg, #064e3b 0%, #047857 60%, #10b981 100%)',
-        'linear-gradient(135deg, #4c0519 0%, #881337 60%, #be123c 100%)',
-        'linear-gradient(135deg, #3b0764 0%, #6b21a8 60%, #9333ea 100%)',
-        'linear-gradient(135deg, #1c1917 0%, #44403c 60%, #78716c 100%)',
-        'linear-gradient(135deg, #451a03 0%, #78350f 60%, #b45309 100%)',
-        'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #0284c7 100%)',
-      ];
-
+      // Компонент вертикальной книжной обложки
       function BookCover({ book }) {
         const [imgError, setImgError] = useState(false);
         const hasValidImage = Boolean(book.cover_url && book.cover_url.trim() && !imgError);
@@ -55,10 +45,7 @@
         const paletteIndex = Math.abs(Number(book.id || 0)) % COVER_PALETTES.length;
         const primaryGenre =
           book.genres && book.genres.length > 0 ? book.genres[0].name : 'Цифровое издание';
-        const authorLine =
-          book.authors && book.authors.length > 0
-            ? book.authors.map((a) => a.full_name || a.first_name + ' ' + a.last_name).join(', ')
-            : 'Автор не указан';
+        const authorLine = formatBookAuthors(book);
 
         return (
           <div className="book-cover-wrapper">
@@ -80,7 +67,6 @@
       }
 
       function BookDetailApp() {
-        // Извлекаем параметр ?id=... из адресной строки браузера
         const urlParams = new URLSearchParams(window.location.search);
         const bookId = urlParams.get('id');
         const user = getCurrentUser();
@@ -90,7 +76,7 @@
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState('');
 
-        // Состояния книжной полки (/api/v1/shelf/) и встроенной онлайн-читалки
+        // Состояния полки (/api/v1/shelf/) и встроенной читалки
         const [shelfItem, setShelfItem] = useState(null);
         const [shelfLoading, setShelfLoading] = useState(false);
         const [shelfMessage, setShelfMessage] = useState('');
@@ -180,8 +166,8 @@
           event.preventDefault();
           setReviewError('');
           setReviewMessage('');
-
           setReviewLoading(true);
+
           try {
             await apiFetch('/reviews/', {
               method: 'POST',
@@ -229,10 +215,11 @@
           );
         }
 
-        const authorsText =
-          book.authors && book.authors.length > 0
-            ? book.authors.map((a) => a.full_name || a.first_name + ' ' + a.last_name).join(', ')
-            : 'Автор не указан';
+        const authorsText = formatBookAuthors(book);
+        const readerText =
+          (book.sample_text && book.sample_text.trim()) ||
+          book.description ||
+          'Электронный фрагмент произведения доступен в цифровой библиотеке LitHub.';
 
         return (
           <div>
@@ -253,16 +240,20 @@
 
                   <div className="badges-row" style={{ marginBottom: '12px' }}>
                     <span className="badge">
-                      ⭐ Средний рейтинг: {Number(book.avg_rating || 0).toFixed(2)}
+                      ⭐ {Number(book.avg_rating || 0).toFixed(1)} ({reviews.length} отз.)
                     </span>
                     <span className="badge badge-digital">
                       📱 Цифровое издание • {book.pages} стр.
                     </span>
                     {book.genres &&
                       book.genres.map((g) => (
-                        <span key={g.id} className="badge">
+                        <a
+                          key={g.id}
+                          href={'search.html?genre=' + encodeURIComponent(g.slug || g.id)}
+                          className="badge badge-link"
+                        >
                           {g.name}
-                        </span>
+                        </a>
                       ))}
                   </div>
 
@@ -270,8 +261,8 @@
                     <strong>Авторы:</strong> {authorsText}
                   </p>
                   <p style={{ marginBottom: '8px' }}>
-                    <strong>ISBN:</strong> {book.isbn} • <strong>Год издания:</strong>{' '}
-                    {book.published_year} • <strong>Страниц:</strong> {book.pages} •{' '}
+                    <strong>ISBN:</strong> {book.isbn} • <strong>Год издания:</strong> 
+                    {book.published_year} • <strong>Страниц:</strong> {book.pages} • 
                     <strong>Язык:</strong> {book.language}
                   </p>
                   {book.publisher && (
@@ -338,7 +329,7 @@
                 <div className="reader-box">
                   <div className="reader-toolbar">
                     <div>
-                      <strong>{book.title}</strong> —{' '}
+                      <strong>{book.title}</strong> — 
                       <span style={{ color: 'var(--muted-color)' }}>{authorsText}</span>
                     </div>
 
@@ -369,12 +360,9 @@
                     <p style={{ fontWeight: 700, marginBottom: '10px' }}>
                       Ознакомительный фрагмент цифрового издания LitHub
                     </p>
-                    <p style={{ marginBottom: '12px' }}>
-                      {book.description ||
-                        'Электронный текст произведения доступен в цифровой библиотеке LitHub.'}
-                    </p>
+                    <p style={{ marginBottom: '12px' }}>{readerText}</p>
                     <p style={{ color: 'var(--muted-color)', fontSize: '0.9em' }}>
-                      Издание: {book.publisher || 'LitHub Digital'}, {book.published_year} г. • Объем:{' '}
+                      Издание: {book.publisher || 'LitHub Digital'}, {book.published_year} г. • Объем: 
                       {book.pages} стр. • ISBN {book.isbn}.
                     </p>
                   </div>
@@ -461,7 +449,7 @@
                       >
                         <div>
                           <div style={{ fontWeight: 700, marginBottom: '4px' }}>
-                            👤 {rev.username || 'Пользователь #' + rev.user} •{' '}
+                            👤 {rev.username || 'Пользователь #' + rev.user} • 
                             <span className="badge">
                               Оценка: {'⭐'.repeat(rev.rating)} ({rev.rating}/5)
                             </span>

@@ -1,10 +1,10 @@
 /* ==========================================================================
    Единый файл стилей цифровой онлайн-библиотеки «LitHub» (css/styles.css)
    Поддерживает:
-   1. Светло-оранжевую дневную тему (:root) и шоколадно-янтарную ночную тему (body[data-theme="dark"])
-   2. Фирменный логотип «Lit [hub]» (чёрная плашка, белое Lit, чёрное hub на #ff9000)
-   3. Вертикальные книжные обложки с эффектом выпуклого корешка слева
-   4. Режимы «Плитка» (.books-grid) и «Список» (.books-list), встроенную читалку и адаптивность
+   1. Светло-оранжевую дневную тему (:root) и шоколадно-янтарную ночную тему
+   2. Фирменный логотип «Lit [hub]» и подсветку активного пункта навигации
+   3. Витрины каталога, тематические подборки, сетку карточек категорий
+   4. Вертикальные книжные обложки с корешком, встроенную читалку и адаптивность
    ========================================================================== */
 
 :root {
@@ -41,6 +41,10 @@ body[data-theme="dark"] {
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-color);
@@ -61,7 +65,7 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Основной контейнер растягивается, прижимая подвал к нижней границе экрана */
+/* Основной контейнер растягивается, прижимая подвал к низу экрана */
 .container {
   max-width: 1180px;
   width: 100%;
@@ -127,15 +131,16 @@ a:hover {
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .nav-link {
   color: var(--text-color);
   font-weight: 500;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .nav-link:hover {
@@ -143,8 +148,15 @@ a:hover {
   text-decoration: none;
 }
 
+/* Подсветка активного пункта меню */
+.nav-link-active {
+  background-color: var(--badge-bg);
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
 /* ==========================================================================
-   Кнопки, карточки, формы и таблицы
+   Кнопки, карточки, заголовки, формы и таблицы
    ========================================================================== */
 .btn {
   display: inline-flex;
@@ -213,6 +225,25 @@ a:hover {
   font-weight: 600;
 }
 
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-header-row .section-title {
+  margin-bottom: 0;
+}
+
+.section-subtitle {
+  color: var(--muted-color);
+  font-size: 0.94rem;
+  margin-bottom: 16px;
+}
+
 .form-box {
   max-width: 460px;
   margin: 28px auto;
@@ -241,17 +272,119 @@ a:hover {
   font-size: 0.95rem;
 }
 
+.input-lg {
+  padding: 13px 16px;
+  font-size: 1.05rem;
+}
+
 .textarea {
   min-height: 90px;
   resize: vertical;
 }
 
 /* ==========================================================================
-   Панель фильтров и сетка каталога книг
+   Витрины на главной странице, подборки и навигация по якорям
    ========================================================================== */
-.filters-bar {
+.showcase-section {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+
+.showcase-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.anchor-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.anchor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.anchor-pill:hover {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+  text-decoration: none;
+}
+
+.collection-block {
+  scroll-margin-top: 84px;
+  margin-bottom: 32px;
+}
+
+/* ==========================================================================
+   Поиск и сетка кликабельных категорий (search.html)
+   ========================================================================== */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.category-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.category-card:hover {
+  background-color: var(--badge-bg);
+  border-color: var(--primary-color);
+  text-decoration: none;
+}
+
+.category-card-active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.category-card-active:hover {
+  background-color: var(--primary-hover);
+  color: #ffffff;
+}
+
+.category-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.search-controls-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 16px;
@@ -271,9 +404,12 @@ a:hover {
   gap: 8px;
 }
 
+/* ==========================================================================
+   Сетка и карточки книг (Плитка / Список)
+   ========================================================================== */
 .books-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
   gap: 18px;
 }
 
@@ -414,7 +550,7 @@ a:hover {
   margin-top: 2px;
 }
 
-/* Макет детальной страницы книги (обложка слева от описания) */
+/* Макет детальной страницы книги */
 .book-detail-layout {
   display: flex;
   gap: 24px;
@@ -440,7 +576,7 @@ a:hover {
 }
 
 .book-title {
-  font-size: 1.12rem;
+  font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 4px;
 }
@@ -466,6 +602,12 @@ a:hover {
   font-weight: 600;
   background-color: var(--badge-bg);
   color: var(--badge-text);
+}
+
+.badge-link:hover {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  text-decoration: none;
 }
 
 .badge-digital {
@@ -582,9 +724,19 @@ a:hover {
   color: var(--muted-color);
 }
 
-/* Адаптивность для мобильных экранов */
+/* Адаптивность для планшетов и телефонов */
+@media (max-width: 1024px) {
+  .showcase-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
-  .filters-bar {
+  .showcase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-controls-row {
     grid-template-columns: 1fr;
   }
 

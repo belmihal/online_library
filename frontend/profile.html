@@ -27,7 +27,6 @@
       function ProfileApp() {
         const user = getCurrentUser();
 
-        // Если пользователь не авторизован — перенаправляем на страницу входа
         if (!user) {
           window.location.href = 'login.html';
           return null;

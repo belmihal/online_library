@@ -1,39 +1,54 @@
 /**
  * Общий скрипт макета страниц LitHub (js/layout.js).
  * Автоматически рисует:
- * 1. Шапку (<header id="app-header">) с логотипом «Lit [hub]», ссылками, переключателем темы и входом/выходом.
- * 2. Подвал (<footer id="app-footer">) ТОЛЬКО с контактной информацией администраторов.
- * 3. Применяет сохранённую тему ('light' или 'dark') при загрузке каждой HTML-страницы.
+ * 1. Шапку (<header id="app-header">) с логотипом «Lit [hub]», ссылками разделов,
+ *    подсветкой активного пункта меню, переключателем темы и блоком авторизации.
+ * 2. Минималистичный подвал (<footer id="app-footer">) ТОЛЬКО с контактами администраторов.
  */
 
 (function () {
-  // Сразу применяем сохранённую тему оформления до отрисовки страницы
   const savedTheme = localStorage.getItem('theme') || 'light';
   document.body.setAttribute('data-theme', savedTheme);
 
-  // Отрисовываем шапку и подвал после загрузки DOM
   document.addEventListener('DOMContentLoaded', function () {
     renderHeader();
     renderFooter();
     syncCurrentUserSession();
   });
 
+  // Определяем текущий открытый HTML-файл для подсветки активного пункта меню
+  function getCurrentPageFile() {
+    const pathname = window.location.pathname || '';
+    const file = pathname.substring(pathname.lastIndexOf('/') + 1);
+    return file === '' ? 'index.html' : file;
+  }
+
+  function navLinkHtml(href, label, currentFile) {
+    const isActive = currentFile === href;
+    const cls = isActive ? 'nav-link nav-link-active' : 'nav-link';
+    return '<a href="' + href + '" class="' + cls + '">' + label + '</a>';
+  }
+
   function renderHeader() {
     const headerEl = document.getElementById('app-header');
     if (!headerEl) return;
 
     const user = getCurrentUser();
+    const currentFile = getCurrentPageFile();
     const currentTheme = document.body.getAttribute('data-theme') || 'light';
     const themeLabel = currentTheme === 'light' ? '🌙 Темная тема' : '☀️ Светлая тема';
 
-    let navLinksHtml = '<a href="index.html" class="nav-link">Каталог книг</a>';
+    let navLinksHtml = '';
+    navLinksHtml += navLinkHtml('index.html', 'Каталог', currentFile);
+    navLinksHtml += navLinkHtml('collections.html', 'Подборки', currentFile);
+    navLinksHtml += navLinkHtml('search.html', 'Поиск и категории', currentFile);
 
     if (user) {
-      navLinksHtml += '<a href="profile.html" class="nav-link">Моя полка и отзывы</a>';
+      navLinksHtml += navLinkHtml('profile.html', 'Моя полка и отзывы', currentFile);
     }
 
     if (user && user.role === 'admin') {
-      navLinksHtml += '<a href="admin.html" class="nav-link">Админ-панель</a>';
+      navLinksHtml += navLinkHtml('admin.html', 'Админ-панель', currentFile);
     }
 
     navLinksHtml +=
@@ -72,7 +87,6 @@
       '</nav>' +
       '</div>';
 
-    // Вешаем обработчик переключения светлой и тёмной темы
     const themeBtn = document.getElementById('theme-toggle-btn');
     if (themeBtn) {
       themeBtn.addEventListener('click', function () {
@@ -84,7 +98,6 @@
       });
     }
 
-    // Вешаем обработчик выхода из аккаунта
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async function () {
@@ -117,7 +130,6 @@
       '</div>';
   }
 
-  // Проверяем актуальность токена через /auth/me/ при наличии токена в localStorage
   function syncCurrentUserSession() {
     const token = localStorage.getItem('token');
     if (!token) return;

@@ -27,7 +27,6 @@
       function AdminApp() {
         const user = getCurrentUser();
 
-        // Доступ разрешен только администратору (role === 'admin')
         if (!user || user.role !== 'admin') {
           window.location.href = 'index.html';
           return null;
@@ -41,7 +40,6 @@
         const [error, setError] = useState('');
         const [successMessage, setSuccessMessage] = useState('');
 
-        // Поля формы создания новой книги
         const [title, setTitle] = useState('');
         const [isbn, setIsbn] = useState('');
         const [publishedYear, setPublishedYear] = useState(2024);
@@ -53,7 +51,6 @@
         const [selectedGenreIds, setSelectedGenreIds] = useState([]);
         const [creatingBook, setCreatingBook] = useState(false);
 
-        // Состояние для загрузки CSV-файла
         const [csvFile, setCsvFile] = useState(null);
         const [csvUploading, setCsvUploading] = useState(false);
 
@@ -174,7 +171,6 @@
             {error && <div className="alert alert-error">{error}</div>}
             {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
-            {/* Блок 1: Импорт книг из CSV */}
             <div className="card">
               <h2 className="section-title">Массовый импорт книг из CSV-файла</h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--muted-color)', marginBottom: '12px' }}>
@@ -191,7 +187,9 @@
                   accept=".csv,text/csv"
                   className="input"
                   style={{ maxWidth: '360px' }}
-                  onChange={(e) => setCsvFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+                  onChange={(e) =>
+                    setCsvFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)
+                  }
                 />
                 <button type="submit" className="btn btn-primary" disabled={csvUploading}>
                   {csvUploading ? 'Загружаем CSV...' : '📥 Импортировать из CSV'}
@@ -199,7 +197,6 @@
               </form>
             </div>
 
-            {/* Блок 2: Форма создания новой книги */}
             <div className="card">
               <h2 className="section-title">Добавить новую книгу в каталог</h2>
 
@@ -352,7 +349,6 @@
               </form>
             </div>
 
-            {/* Блок 3: Таблица книг */}
             <div className="card">
               <h2 className="section-title">Управление книгами в каталоге ({books.length})</h2>
 
@@ -374,12 +370,7 @@
                     </thead>
                     <tbody>
                       {books.map((b) => {
-                        const authorsText =
-                          b.authors && b.authors.length > 0
-                            ? b.authors
-                                .map((a) => a.full_name || a.first_name + ' ' + a.last_name)
-                                .join(', ')
-                            : 'Автор не указан';
+                        const authorsText = formatBookAuthors(b);
                         return (
                           <tr key={b.id}>
                             <td>{b.id}</td>

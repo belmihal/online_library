@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LitHub — Поиск и категории книг</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <header id="app-header"></header>
+
+    <main class="container">
+      <div id="search-root"></div>
+    </main>
+
+    <footer id="app-footer"></footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Компонент вертикальной книжной обложки с корешком
+      function BookCover({ book }) {
+        const [imgError, setImgError] = useState(false);
+        const hasValidImage = Boolean(book.cover_url && book.cover_url.trim() && !imgError);
+
+        if (hasValidImage) {
+          return (
+            <div className="book-cover-wrapper">
+              <img
+                src={book.cover_url}
+                alt={book.title}
+                className="book-cover-img"
+                onError={() => setImgError(true)}
+              />
+            </div>
+          );
+        }
+
+        const paletteIndex = Math.abs(Number(book.id || 0)) % COVER_PALETTES.length;
+        const primaryGenre =
+          book.genres && book.genres.length > 0 ? book.genres[0].name : 'Цифровое издание';
+        const authorLine = formatBookAuthors(book);
+
+        return (
+          <div className="book-cover-wrapper">
+            <div className="book-cover-styled" style={{ background: COVER_PALETTES[paletteIndex] }}>
+              <div className="book-cover-spine" />
+              <div className="book-cover-frame">
+                <div className="book-cover-genre">{primaryGenre}</div>
+                <div className="book-cover-title">{book.title}</div>
+                <div className="book-cover-footer">
+                  <div className="book-cover-author">{authorLine}</div>
+                  {book.published_year && (
+                    <div className="book-cover-year">{book.published_year} г.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Компонент карточки книги (режимы 'grid' и 'list')
+      function BookCard({ book, viewMode = 'grid', compact = false }) {
+        const authorsText = formatBookAuthors(book);
+        const bookHref = 'book.html?id=' + book.id;
+        const reviewsCount = Number(book.reviews_count || 0);
+
+        return (
+          <div className={'book-card ' + (viewMode === 'list' ? 'book-card-list' : '')}>
+            <a href={bookHref} className="book-card-cover-link">
+              <BookCover book={book} />
+            </a>
+
+            <div style={{ flex: 1 }}>
+              <div className="book-title">
+                <a href={bookHref}>{book.title}</a>
+              </div>
+
+              <div className="book-meta">
+                <strong>Автор:</strong> {authorsText} • <strong>Год:</strong> {book.published_year}
+              </div>
+
+              <div className="badges-row">
+                {book.genres &&
+                  book.genres.map((genre) => (
+                    <a
+                      key={genre.id}
+                      href={'search.html?genre=' + encodeURIComponent(genre.slug || genre.id)}
+                      className="badge badge-link"
+                    >
+                      {genre.name}
+                    </a>
+                  ))}
+              </div>
+
+              {!compact && book.description && (
+                <p style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
+                  {book.description.length > 120
+                    ? book.description.slice(0, 120) + '...'
+                    : book.description}
+                </p>
+              )}
+
+              <div className="badges-row" style={{ alignItems: 'center' }}>
+                <span className="badge">
+                  ⭐ {Number(book.avg_rating || 0).toFixed(1)} ({reviewsCount} отз.)
+                </span>
+                <span className="badge badge-digital">
+                  📱 {book.pages} стр.
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <a href={bookHref} className="btn btn-primary">
+                Открыть книгу
+              </a>
+            </div>
+          </div>
+        );
+      }
+
+
+      function SearchApp() {
+        // Читаем начальные параметры ?q=... и ?genre=... из адресной строки
+        const initialUrlParams = new URLSearchParams(window.location.search);
+
+        const [books, setBooks] = useState([]);
+        const [genres, setGenres] = useState([]);
+        const [authors, setAuthors] = useState([]);
+
+        const [search, setSearch] = useState(initialUrlParams.get('q') || '');
+        const [selectedGenre, setSelectedGenre] = useState(initialUrlParams.get('genre') || '');
+        const [selectedAuthor, setSelectedAuthor] = useState('');
+        const [ordering, setOrdering] = useState('-id');
+        const [page, setPage] = useState(1);
+
+        const [totalCount, setTotalCount] = useState(0);
+        const [hasNext, setHasNext] = useState(false);
+        const [hasPrev, setHasPrev] = useState(false);
+
+        const [viewMode, setViewMode] = useState(
+          localStorage.getItem('catalogViewMode') || 'grid'
+        );
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState('');
+
+        // Синхронизируем адресную строку (?genre=...&q=...) при смене поиска или категории
+        function syncUrl(nextGenre, nextQuery) {
+          const params = new URLSearchParams();
+          if (nextGenre) params.set('genre', nextGenre);
+          if (nextQuery && nextQuery.trim()) params.set('q', nextQuery.trim());
+          const qs = params.toString();
+          const nextUrl = qs ? 'search.html?' + qs : 'search.html';
+          window.history.replaceState(null, '', nextUrl);
+        }
+
+        // Загружаем справочники жанров и авторов
+        useEffect(() => {
+          Promise.all([apiFetch('/genres/'), apiFetch('/authors/')])
+            .then(([genresData, authorsData]) => {
+              setGenres(Array.isArray(genresData) ? genresData : genresData.results || []);
+              setAuthors(Array.isArray(authorsData) ? authorsData : authorsData.results || []);
+            })
+            .catch((err) => {
+              console.error('Ошибка загрузки категорий и авторов:', err);
+            });
+        }, []);
+
+        // Загружаем отфильтрованные книги при изменении параметров
+        useEffect(() => {
+          let isCancelled = false;
+
+          async function fetchFilteredBooks() {
+            setLoading(true);
+            setError('');
+
+            function buildQuery(genreValue) {
+              const params = new URLSearchParams();
+              if (search.trim()) params.set('search', search.trim());
+              if (genreValue) params.set('genre', genreValue);
+              if (selectedAuthor) params.set('author', selectedAuthor);
+              if (ordering) params.set('ordering', ordering);
+              params.set('page', String(page));
+              return '/books/?' + params.toString();
+            }
+
+            try {
+              let data;
+              try {
+                data = await apiFetch(buildQuery(selectedGenre));
+              } catch (firstErr) {
+                // Если бэкенд ожидает числовой ID жанра вместо slug — подставляем ID из справочника
+                const matchedGenre = genres.find(
+                  (g) => String(g.slug || '').toLowerCase() === String(selectedGenre).toLowerCase()
+                );
+                if (matchedGenre && String(matchedGenre.id) !== String(selectedGenre)) {
+                  data = await apiFetch(buildQuery(String(matchedGenre.id)));
+                } else {
+                  throw firstErr;
+                }
+              }
+
+              if (isCancelled) return;
+
+              if (Array.isArray(data)) {
+                setBooks(data);
+                setTotalCount(data.length);
+                setHasNext(false);
+                setHasPrev(false);
+              } else {
+                setBooks(data.results || []);
+                setTotalCount(data.count || 0);
+                setHasNext(Boolean(data.next));
+                setHasPrev(Boolean(data.previous));
+              }
+            } catch (err) {
+              if (!isCancelled) {
+                setError(err.message || 'Ошибка при поиске книг.');
+              }
+            } finally {
+              if (!isCancelled) {
+                setLoading(false);
+              }
+            }
+          }
+
+          fetchFilteredBooks();
+          return () => {
+            isCancelled = true;
+          };
+        }, [search, selectedGenre, selectedAuthor, ordering, page, genres]);
+
+        function handleSelectGenre(genreSlugOrId) {
+          const nextValue =
+            String(selectedGenre) === String(genreSlugOrId) ? '' : String(genreSlugOrId);
+          setSelectedGenre(nextValue);
+          setPage(1);
+          syncUrl(nextValue, search);
+        }
+
+        function handleSearchChange(val) {
+          setSearch(val);
+          setPage(1);
+          syncUrl(selectedGenre, val);
+        }
+
+        function handleResetFilters() {
+          setSearch('');
+          setSelectedGenre('');
+          setSelectedAuthor('');
+          setOrdering('-id');
+          setPage(1);
+          syncUrl('', '');
+        }
+
+        function changeViewMode(mode) {
+          setViewMode(mode);
+          localStorage.setItem('catalogViewMode', mode);
+        }
+
+        return (
+          <div>
+            <h1 className="page-title">Поиск и категории книг</h1>
+
+            {/* Блок крупной строки поиска, категорий и фильтров */}
+            <div className="card">
+              <div className="form-group">
+                <label htmlFor="search-query">Поиск по названию, ISBN или фамилии автора</label>
+                <input
+                  id="search-query"
+                  type="text"
+                  className="input input-lg"
+                  placeholder="Например: 1984, Достоевский, Атомные привычки или ISBN..."
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                />
+              </div>
+
+              {/* Сетка кликабельных карточек-ссылок категорий */}
+              <div className="form-group" style={ marginTop: '16px' }>
+                <label>Категории книг</label>
+                <div className="categories-grid">
+                  <a
+                    href="search.html"
+                    className={'category-card ' + (selectedGenre === '' ? 'category-card-active' : '')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedGenre('');
+                      setPage(1);
+                      syncUrl('', search);
+                    }}
+                  >
+                    <span className="category-icon">📚</span>
+                    <span>Все категории</span>
+                  </a>
+
+                  {genres.map((g) => {
+                    const keyVal = g.slug || String(g.id);
+                    const isActive =
+                      String(selectedGenre).toLowerCase() === String(g.slug || '').toLowerCase() ||
+                      String(selectedGenre) === String(g.id);
+                    return (
+                      <a
+                        key={g.id}
+                        href={'search.html?genre=' + encodeURIComponent(keyVal)}
+                        className={'category-card ' + (isActive ? 'category-card-active' : '')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSelectGenre(keyVal);
+                        }}
+                      >
+                        <span className="category-icon">{getGenreIcon(g)}</span>
+                        <span>{g.name}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Фильтр по автору, сортировка и кнопка Сбросить */}
+              <div className="search-controls-row">
+                <div>
+                  <label htmlFor="author-select" style={ display: 'block', fontWeight: 600, marginBottom: 6 }>
+                    Автор
+                  </label>
+                  <select
+                    id="author-select"
+                    className="select"
+                    value={selectedAuthor}
+                    onChange={(e) => {
+                      setSelectedAuthor(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">Все авторы</option>
+                    {authors.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.full_name || a.first_name + ' ' + a.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="sort-select" style={ display: 'block', fontWeight: 600, marginBottom: 6 }>
+                    Сортировка
+                  </label>
+                  <select
+                    id="sort-select"
+                    className="select"
+                    value={ordering}
+                    onChange={(e) => {
+                      setOrdering(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="-id">Сначала новые</option>
+                    <option value="-avg_rating">По рейтингу</option>
+                    <option value="-published_year">По году</option>
+                    <option value="title">По названию</option>
+                  </select>
+                </div>
+
+                <div>
+                  <button type="button" className="btn btn-outline" onClick={handleResetFilters}>
+                    Сбросить
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-row" style={ marginBottom: 0 }>
+                <span style={ color: 'var(--muted-color)', fontWeight: 500 }>
+                  Найдено книг: <strong>{totalCount}</strong>
+                </span>
+
+                <div className="view-toggle">
+                  <button
+                    type="button"
+                    className={'btn ' + (viewMode === 'grid' ? 'btn-primary' : 'btn-outline')}
+                    onClick={() => changeViewMode('grid')}
+                  >
+                    ⊞ Плитка
+                  </button>
+                  <button
+                    type="button"
+                    className={'btn ' + (viewMode === 'list' ? 'btn-primary' : 'btn-outline')}
+                    onClick={() => changeViewMode('list')}
+                  >
+                    ☰ Список
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {error && <div className="alert alert-error">{error}</div>}
+
+            {loading ? (
+              <div className="card">Ищем книги...</div>
+            ) : books.length === 0 ? (
+              <div className="card">
+                По вашему запросу ничего не найдено. Попробуйте сбросить фильтры или выбрать другую категорию.
+              </div>
+            ) : (
+              <div className={viewMode === 'grid' ? 'books-grid' : 'books-list'}>
+                {books.map((book) => (
+                  <BookCard key={book.id} book={book} viewMode={viewMode} />
+                ))}
+              </div>
+            )}
+
+            {(hasPrev || hasNext) && (
+              <div className="pagination">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={!hasPrev}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  ← Назад
+                </button>
+                <span>Страница {page}</span>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={!hasNext}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Вперед →
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('search-root')).render(<SearchApp />);
+    </script>
+  </body>
+</html>

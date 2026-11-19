@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LitHub — Каталог цифровых книг</title>
     <link rel="stylesheet" href="css/styles.css" />
-    <!-- React 18, ReactDOM и Babel Standalone через CDN (без сборщиков и npm) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -22,23 +21,10 @@
     <script src="js/api.js"></script>
     <script src="js/layout.js"></script>
 
-    <!-- Код каталога книг на базовом React 18 (useState, useEffect, fetch) -->
     <script type="text/babel">
       const { useState, useEffect } = React;
 
-      // 8 книжных палитр для стилизованных обложек с корешком
-      const COVER_PALETTES = [
-        'linear-gradient(135deg, #431407 0%, #9a3412 55%, #ea580c 100%)',
-        'linear-gradient(135deg, #1e1b4b 0%, #3730a3 60%, #4f46e5 100%)',
-        'linear-gradient(135deg, #064e3b 0%, #047857 60%, #10b981 100%)',
-        'linear-gradient(135deg, #4c0519 0%, #881337 60%, #be123c 100%)',
-        'linear-gradient(135deg, #3b0764 0%, #6b21a8 60%, #9333ea 100%)',
-        'linear-gradient(135deg, #1c1917 0%, #44403c 60%, #78716c 100%)',
-        'linear-gradient(135deg, #451a03 0%, #78350f 60%, #b45309 100%)',
-        'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #0284c7 100%)',
-      ];
-
-      // Компонент вертикальной книжной обложки
+      // Компонент вертикальной книжной обложки с корешком
       function BookCover({ book }) {
         const [imgError, setImgError] = useState(false);
         const hasValidImage = Boolean(book.cover_url && book.cover_url.trim() && !imgError);
@@ -59,10 +45,7 @@
         const paletteIndex = Math.abs(Number(book.id || 0)) % COVER_PALETTES.length;
         const primaryGenre =
           book.genres && book.genres.length > 0 ? book.genres[0].name : 'Цифровое издание';
-        const authorLine =
-          book.authors && book.authors.length > 0
-            ? book.authors.map((a) => a.full_name || a.first_name + ' ' + a.last_name).join(', ')
-            : 'Автор не указан';
+        const authorLine = formatBookAuthors(book);
 
         return (
           <div className="book-cover-wrapper">
@@ -83,14 +66,11 @@
         );
       }
 
-      // Компонент карточки одной книги в каталоге
-      function BookCard({ book, viewMode }) {
-        const authorsText =
-          book.authors && book.authors.length > 0
-            ? book.authors.map((a) => a.full_name || a.first_name + ' ' + a.last_name).join(', ')
-            : 'Автор не указан';
-
+      // Компонент карточки книги (режимы 'grid' и 'list')
+      function BookCard({ book, viewMode = 'grid', compact = false }) {
+        const authorsText = formatBookAuthors(book);
         const bookHref = 'book.html?id=' + book.id;
+        const reviewsCount = Number(book.reviews_count || 0);
 
         return (
           <div className={'book-card ' + (viewMode === 'list' ? 'book-card-list' : '')}>
@@ -110,13 +90,17 @@
               <div className="badges-row">
                 {book.genres &&
                   book.genres.map((genre) => (
-                    <span key={genre.id} className="badge">
+                    <a
+                      key={genre.id}
+                      href={'search.html?genre=' + encodeURIComponent(genre.slug || genre.id)}
+                      className="badge badge-link"
+                    >
                       {genre.name}
-                    </span>
+                    </a>
                   ))}
               </div>
 
-              {book.description && (
+              {!compact && book.description && (
                 <p style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
                   {book.description.length > 120
                     ? book.description.slice(0, 120) + '...'
@@ -126,10 +110,10 @@
 
               <div className="badges-row" style={{ alignItems: 'center' }}>
                 <span className="badge">
-                  ⭐ Рейтинг: {Number(book.avg_rating || 0).toFixed(1)}
+                  ⭐ {Number(book.avg_rating || 0).toFixed(1)} ({reviewsCount} отз.)
                 </span>
                 <span className="badge badge-digital">
-                  📱 Цифровая книга • {book.pages} стр.
+                  📱 {book.pages} стр.
                 </span>
               </div>
             </div>
@@ -143,18 +127,15 @@
         );
       }
 
-      // Главный компонент страницы каталога
+
+      // Главная страница LitHub: 2 витрины + сплошной каталог без формы поиска
       function CatalogApp() {
+        const [bestsellers, setBestsellers] = useState([]);
+        const [readersChoice, setReadersChoice] = useState([]);
+        const [showcasesLoading, setShowcasesLoading] = useState(true);
+
         const [books, setBooks] = useState([]);
-        const [genres, setGenres] = useState([]);
-        const [authors, setAuthors] = useState([]);
-
-        const [search, setSearch] = useState('');
-        const [selectedGenre, setSelectedGenre] = useState('');
-        const [selectedAuthor, setSelectedAuthor] = useState('');
-        const [ordering, setOrdering] = useState('-id');
         const [page, setPage] = useState(1);
-
         const [totalCount, setTotalCount] = useState(0);
         const [hasNext, setHasNext] = useState(false);
         const [hasPrev, setHasPrev] = useState(false);
@@ -165,31 +146,40 @@
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState('');
 
-        // Загрузка справочников жанров и авторов
+        // Загружаем книги для 2 верхних витрин: «Бестселлеры» и «Выбор читателей»
         useEffect(() => {
-          Promise.all([apiFetch('/genres/'), apiFetch('/authors/')])
-            .then(([genresData, authorsData]) => {
-              setGenres(Array.isArray(genresData) ? genresData : genresData.results || []);
-              setAuthors(Array.isArray(authorsData) ? authorsData : authorsData.results || []);
+          setShowcasesLoading(true);
+          apiFetch('/books/?page_size=100')
+            .then((data) => {
+              const allBooks = Array.isArray(data) ? data : data.results || [];
+
+              // Топ-4 книги по убыванию среднего рейтинга (avg_rating)
+              const topRated = [...allBooks]
+                .sort((a, b) => Number(b.avg_rating || 0) - Number(a.avg_rating || 0))
+                .slice(0, 4);
+
+              // Топ-4 книги по числу отзывов (reviews_count)
+              const mostReviewed = [...allBooks]
+                .sort((a, b) => Number(b.reviews_count || 0) - Number(a.reviews_count || 0))
+                .slice(0, 4);
+
+              setBestsellers(topRated);
+              setReadersChoice(mostReviewed);
             })
             .catch((err) => {
-              console.error('Ошибка загрузки справочников:', err);
+              console.error('Ошибка загрузки витрин:', err);
+            })
+            .finally(() => {
+              setShowcasesLoading(false);
             });
         }, []);
 
-        // Загрузка списка книг при смене фильтров или страницы
+        // Загружаем сплошной каталог книг постранично
         useEffect(() => {
           setLoading(true);
           setError('');
 
-          const params = new URLSearchParams();
-          if (search.trim()) params.set('search', search.trim());
-          if (selectedGenre) params.set('genre', selectedGenre);
-          if (selectedAuthor) params.set('author', selectedAuthor);
-          if (ordering) params.set('ordering', ordering);
-          params.set('page', String(page));
-
-          apiFetch('/books/?' + params.toString())
+          apiFetch('/books/?page=' + page)
             .then((data) => {
               if (Array.isArray(data)) {
                 setBooks(data);
@@ -209,119 +199,74 @@
             .finally(() => {
               setLoading(false);
             });
-        }, [search, selectedGenre, selectedAuthor, ordering, page]);
+        }, [page]);
 
         function changeViewMode(mode) {
           setViewMode(mode);
           localStorage.setItem('catalogViewMode', mode);
         }
 
-        function resetFilters() {
-          setSearch('');
-          setSelectedGenre('');
-          setSelectedAuthor('');
-          setOrdering('-id');
-          setPage(1);
-        }
-
         return (
           <div>
             <h1 className="page-title">Каталог книг LitHub</h1>
 
-            <div className="card">
-              <div className="filters-bar">
-                <div>
-                  <label htmlFor="search-input" style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
-                    Поиск по названию, ISBN или автору
-                  </label>
-                  <input
-                    id="search-input"
-                    type="text"
-                    className="input"
-                    placeholder="Введите название книги или фамилию автора..."
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                  />
-                </div>
+            {error && <div className="alert alert-error">{error}</div>}
 
-                <div>
-                  <label htmlFor="genre-select" style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
-                    Жанр
-                  </label>
-                  <select
-                    id="genre-select"
-                    className="select"
-                    value={selectedGenre}
-                    onChange={(e) => {
-                      setSelectedGenre(e.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value="">Все жанры</option>
-                    {genres.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="author-select" style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
-                    Автор
-                  </label>
-                  <select
-                    id="author-select"
-                    className="select"
-                    value={selectedAuthor}
-                    onChange={(e) => {
-                      setSelectedAuthor(e.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value="">Все авторы</option>
-                    {authors.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.full_name || a.first_name + ' ' + a.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="sort-select" style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
-                    Сортировка
-                  </label>
-                  <select
-                    id="sort-select"
-                    className="select"
-                    value={ordering}
-                    onChange={(e) => {
-                      setOrdering(e.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value="-id">Сначала новые</option>
-                    <option value="-avg_rating">По рейтингу (убывание)</option>
-                    <option value="title">По названию (А-Я)</option>
-                    <option value="-published_year">По году издания (новые)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <button type="button" className="btn btn-outline" onClick={resetFilters}>
-                    Сбросить
-                  </button>
-                </div>
+            {/* Витрина 1: Бестселлеры LitHub (топ-4 по avg_rating) */}
+            <section className="showcase-section">
+              <div className="section-header-row">
+                <h2 className="section-title">🔥 Бестселлеры LitHub</h2>
+                <a href="collections.html" className="btn btn-outline">
+                  Все подборки →
+                </a>
               </div>
 
-              <div className="toolbar-row" style={{ marginBottom: 0 }}>
-                <span style={{ color: 'var(--muted-color)', fontWeight: 500 }}>
-                  Найдено цифровых книг: <strong>{totalCount}</strong>
-                </span>
+              {showcasesLoading ? (
+                <p style={ color: 'var(--muted-color)' }>Загрузка витрины...</p>
+              ) : bestsellers.length === 0 ? (
+                <p style={ color: 'var(--muted-color)' }>Книги пока не добавлены.</p>
+              ) : (
+                <div className="showcase-grid">
+                  {bestsellers.map((book) => (
+                    <BookCard key={book.id} book={book} viewMode="grid" compact={true} />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Витрина 2: Выбор читателей (топ-4 по reviews_count) */}
+            <section className="showcase-section">
+              <div className="section-header-row">
+                <h2 className="section-title">💬 Выбор читателей</h2>
+                <a href="collections.html#most-discussed" className="btn btn-outline">
+                  Самые обсуждаемые →
+                </a>
+              </div>
+
+              {showcasesLoading ? (
+                <p style={ color: 'var(--muted-color)' }>Загрузка витрины...</p>
+              ) : readersChoice.length === 0 ? (
+                <p style={ color: 'var(--muted-color)' }>Книги пока не добавлены.</p>
+              ) : (
+                <div className="showcase-grid">
+                  {readersChoice.map((book) => (
+                    <BookCard key={book.id} book={book} viewMode="grid" compact={true} />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Сплошной каталог всех книг библиотеки */}
+            <section>
+              <div className="toolbar-row">
+                <div>
+                  <h2 className="section-title" style={ marginBottom: '4px' }>
+                    Все книги библиотеки
+                  </h2>
+                  <span style={ color: 'var(--muted-color)', fontSize: '0.92rem' }>
+                    Всего цифровых книг: <strong>{totalCount}</strong>
+                  </span>
+                </div>
 
                 <div className="view-toggle">
                   <button
@@ -340,45 +285,41 @@
                   </button>
                 </div>
               </div>
-            </div>
 
-            {error && <div className="alert alert-error">{error}</div>}
+              {loading ? (
+                <div className="card">Загрузка каталога книг LitHub...</div>
+              ) : books.length === 0 ? (
+                <div className="card">В каталоге пока нет книг.</div>
+              ) : (
+                <div className={viewMode === 'grid' ? 'books-grid' : 'books-list'}>
+                  {books.map((book) => (
+                    <BookCard key={book.id} book={book} viewMode={viewMode} />
+                  ))}
+                </div>
+              )}
 
-            {loading ? (
-              <div className="card">Загрузка каталога книг LitHub...</div>
-            ) : books.length === 0 ? (
-              <div className="card">
-                По вашему запросу книги не найдены. Попробуйте изменить параметры поиска или фильтрации.
-              </div>
-            ) : (
-              <div className={viewMode === 'grid' ? 'books-grid' : 'books-list'}>
-                {books.map((book) => (
-                  <BookCard key={book.id} book={book} viewMode={viewMode} />
-                ))}
-              </div>
-            )}
-
-            {(hasPrev || hasNext) && (
-              <div className="pagination">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled={!hasPrev}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ← Назад
-                </button>
-                <span>Страница {page}</span>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled={!hasNext}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Вперед →
-                </button>
-              </div>
-            )}
+              {(hasPrev || hasNext) && (
+                <div className="pagination">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={!hasPrev}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    ← Назад
+                  </button>
+                  <span>Страница {page}</span>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={!hasNext}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Вперед →
+                  </button>
+                </div>
+              )}
+            </section>
           </div>
         );
       }
